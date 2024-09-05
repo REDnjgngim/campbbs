@@ -1,0 +1,103 @@
+html{
+  background-color: #CBF3B8;
+  font-size: clamp(10px, 3vw, 16px);
+}
+
+.App {
+  text-align: center;
+  padding: 2rem 0 8rem;
+}
+
+.BATSU {
+  max-width: 30px;
+  max-height: 30px;
+  width: 3vh;
+  height: 3vh;
+}
+ 
+.BATSU::before, .BATSU::after { /* 共通設定 */
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px; /* 棒の幅（太さ） */
+  height: 30px; /* 棒の高さ */
+  background: #ccc;
+}
+ 
+.BATSU::before {
+  transform: translate(-50%,-50%) rotate(45deg);
+}
+ 
+.BATSU::after {
+  transform: translate(-50%,-50%) rotate(-45deg);
+}
+
+.RELOAD {
+  display: inline-block;
+  vertical-align: middle;
+  color: #333;
+  line-height: 1;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  transform: rotate(45deg);
+}
+
+.RELOAD::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: inherit;
+  height: inherit;
+  border: 0.1em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  transform: rotate(-45deg);
+}
+
+.RELOAD::after {
+  content: '';
+  position: absolute;
+  top: 0.05em;
+  right: 50%;
+  width: 0.2em;
+  height: 0.2em;
+  border: 0.1em solid currentColor;
+  border-left: 0;
+  border-bottom: 0;
+  box-sizing: content-box;
+  transform: translateX(0.14142em) rotate(45deg);
+  transform-origin: top right;
+}
+
+
+/* 縦スマホ */
+@media (max-aspect-ratio: 9 / 16) {
+  .App div{
+    /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
+  }
+}
+
+/* 縦スマホ～正方形 */
+@media (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 4 / 3) {
+  .App div{
+    /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
+  }
+}
+
+/* 正方形～横スマホ */
+@media (min-aspect-ratio:  4 / 3){
+  .App div{
+    /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
+  }
+}
+
+/* 横スマホ～ */
+@media (min-aspect-ratio: 16 / 9) and (pointer: coarse) {
+  .App div{
+    /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
+  }
+}

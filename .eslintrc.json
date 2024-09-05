@@ -1,0 +1,8 @@
+{
+    "extends": ["airbnb-base", "prettier","plugin:tailwindcss/recommended"],
+    "plugins": [],
+    "parserOptions": {},
+    "env": {"browser": true},
+    "globals": {},
+    "rules": {}
+}
