@@ -4,9 +4,9 @@ import HAKONIWADataReducer from "./HAKONIWADataSlice";
 import toastReducer from "./toastSlice";
 
 export const store = configureStore({
-    reducer: {
-        bbsTable: bbsTableReducer,
-        HAKONIWAData: HAKONIWADataReducer,
-        toast: toastReducer,
-    },
+  reducer: {
+    bbsTable: bbsTableReducer,
+    HAKONIWAData: HAKONIWADataReducer,
+    toast: toastReducer,
+  },
 });

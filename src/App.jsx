@@ -1,5 +1,3 @@
-//@ts-check
-
 import React, { useState, useEffect } from "react";
 
 import "./App.css";
@@ -8,313 +6,304 @@ import { Message } from "./Message";
 import ModalWindow from "./ModalWindow";
 import PostForm from "./PostForm";
 import ImageDisplay from "./ImageDisplay";
-import Toast from './Toast';
+import Toast from "./Toast";
 import { useSelector, useDispatch } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
-import { createSelector } from 'reselect';
+import { createSelector } from "reselect";
 
 const selectHAKONIWAData = createSelector(
-    (state) => state.HAKONIWAData,
-    (HAKONIWAData) => ({
-        islandTurn: HAKONIWAData.islandTurn,
-        islandId: HAKONIWAData.islandId,
-        islandName: HAKONIWAData.islandName,
-        campId: HAKONIWAData.campId,
-        campNameList: HAKONIWAData.campNameList
-    })
+  (state) => state.HAKONIWAData,
+  (HAKONIWAData) => ({
+    islandTurn: HAKONIWAData.islandTurn,
+    islandId: HAKONIWAData.islandId,
+    islandName: HAKONIWAData.islandName,
+    campId: HAKONIWAData.campId,
+    campNameList: HAKONIWAData.campNameList,
+  }),
 );
 const selectNewbbsTable = createSelector(
-    (state) => state.bbsTable,
-    selectHAKONIWAData,
-    (bbsTable, HAKONIWAData) => ({
-        log: bbsTable.log[HAKONIWAData.campId],
-        timeline: bbsTable.timeline[HAKONIWAData.campId],
-    })
+  (state) => state.bbsTable,
+  selectHAKONIWAData,
+  (bbsTable, HAKONIWAData) => ({
+    log: bbsTable.log[HAKONIWAData.campId],
+    timeline: bbsTable.timeline[HAKONIWAData.campId],
+  }),
 );
 const selectNewbbsTable2 = createSelector(
-    (state) => state.bbsTable,
-    selectHAKONIWAData,
-    (bbsTable, HAKONIWAData) => ({
-        log: bbsTable.log["2"],
-        timeline: bbsTable.timeline["2"],
-    })
+  (state) => state.bbsTable,
+  (bbsTable) => ({
+    log: bbsTable.log["2"],
+    timeline: bbsTable.timeline["2"],
+  }),
 );
 
 function App() {
-    const HAKONIWAData = useSelector(selectHAKONIWAData);
-    const newbbsTable = useSelector(selectNewbbsTable);
-    const newbbsTable2 = useSelector(selectNewbbsTable2);
-    const dispatch = useDispatch();
-    const [isModalOpen, setModalOpen] = useState(false); // モーダルの状態を管理
-    const [modalContentType, setmodalContentType] = useState(""); // モーダルの状態を管理
-    const [modalimgURL, setmodalimgURL] = useState(""); // モーダルの状態を管理
-    const [formData, setFormData] = useState({
-        new: new FormData("1"),
-        reply: new FormData("1"),
-        edit: new FormData("1"),
-        diplomacy: new FormData("2"),
-    }); // フォームデータを管理
-    const [targetNo, setTargetNo] = useState("0"); // targetNoの状態を追加
+  const HAKONIWAData = useSelector(selectHAKONIWAData);
+  const newbbsTable = useSelector(selectNewbbsTable);
+  const newbbsTable2 = useSelector(selectNewbbsTable2);
+  const dispatch = useDispatch();
+  const [isModalOpen, setModalOpen] = useState(false); // モーダルの状態を管理
+  const [modalContentType, setmodalContentType] = useState(""); // モーダルの状態を管理
+  const [modalimgURL, setmodalimgURL] = useState(""); // モーダルの状態を管理
+  const [formData, setFormData] = useState({
+    new: new FormData("1"),
+    reply: new FormData("1"),
+    edit: new FormData("1"),
+    diplomacy: new FormData("2"),
+  }); // フォームデータを管理
+  const [targetNo, setTargetNo] = useState("0"); // targetNoの状態を追加
 
-    const toggleModal = () => {
-        setModalOpen(!isModalOpen);
-    };
+  const toggleModal = () => {
+    setModalOpen(!isModalOpen);
+  };
 
-    const modalSetting = (formType, newTargetNo, imgURL) => {
-        setmodalContentType(formType);
-        if (newTargetNo !== "") setTargetNo(newTargetNo);
-        const isSameModalWindow = targetNo === newTargetNo;
+  const modalSetting = (formType, newTargetNo, imgURL) => {
+    setmodalContentType(formType);
+    if (newTargetNo !== "") setTargetNo(newTargetNo);
+    const isSameModalWindow = targetNo === newTargetNo;
 
-        if (formType === "image") {
-            setmodalimgURL(imgURL);
-        } else if (formType === "reply" && !isSameModalWindow) {
-            setFormData((prevState) => ({
-                ...prevState,
-                [formType]: {
-                    ...prevState[formType],
-                    title: `Re:[No.${newTargetNo}]への返信`,
-                    content: ``,
-                },
-            }));
-        } else if (formType === "edit" && !isSameModalWindow) {
-            const messageData = newbbsTable.log.find(
-                (message) => message.No === newTargetNo
-            );
-            if (messageData) {
-                setFormData((prevState) => ({
-                    ...prevState,
-                    [formType]: {
-                        ...prevState[formType],
-                        title: messageData.title,
-                        name: messageData.owner,
-                        content: messageData.content,
-                        color: messageData.contentColor,
-                        images: messageData.images,
-                    },
-                }));
-            } else {
-                console.error("メッセージデータが見つかりませんでした。");
-            }
-        } else if (formType === "NEW") {
-            // 新規投稿後
-            setFormData((prevState) => ({
-                ...prevState,
-                ["new"]: {
-                    ...prevState["new"],
-                    title: ``,
-                    content: ``,
-                },
-                ["diplomacy"]: {
-                    ...prevState["new"],
-                    title: ``,
-                    content: ``,
-                }
-            }));
-        } else if (formType === "REPLY") {
-            // 返信後
-            setFormData((prevState) => ({
-                ...prevState,
-                ["reply"]: {
-                    ...prevState["reply"],
-                    title: ``,
-                    content: ``,
-                }
-            }));
-        }
-    };
-
-    const saveContent = (event, formType) => {
-        const { name, value } = event.target;
+    if (formType === "image") {
+      setmodalimgURL(imgURL);
+    } else if (formType === "reply" && !isSameModalWindow) {
+      setFormData((prevState) => ({
+        ...prevState,
+        [formType]: {
+          ...prevState[formType],
+          title: `Re:[No.${newTargetNo}]への返信`,
+          content: ``,
+        },
+      }));
+    } else if (formType === "edit" && !isSameModalWindow) {
+      const messageData = newbbsTable.log.find(
+        (message) => message.No === newTargetNo,
+      );
+      if (messageData) {
         setFormData((prevState) => ({
-            ...prevState,
-            [formType]: {
-                ...prevState[formType],
-                [name]: value,
-            },
+          ...prevState,
+          [formType]: {
+            ...prevState[formType],
+            title: messageData.title,
+            name: messageData.owner,
+            content: messageData.content,
+            color: messageData.contentColor,
+            images: messageData.images,
+          },
         }));
-    };
-
-    const handleSubmit_reload = () => {
-        dispatch(
-            update({
-                type: "RELOAD"
-            })
-        );
+      } else {
+        console.error("メッセージデータが見つかりませんでした。");
+      }
+    } else if (formType === "NEW") {
+      // 新規投稿後
+      setFormData((prevState) => ({
+        ...prevState,
+        ["new"]: {
+          ...prevState["new"],
+          title: ``,
+          content: ``,
+        },
+        ["diplomacy"]: {
+          ...prevState["new"],
+          title: ``,
+          content: ``,
+        },
+      }));
+    } else if (formType === "REPLY") {
+      // 返信後
+      setFormData((prevState) => ({
+        ...prevState,
+        ["reply"]: {
+          ...prevState["reply"],
+          title: ``,
+          content: ``,
+        },
+      }));
     }
+  };
 
-    useEffect(() => {
-        console.log(newbbsTable.timeline);
-        console.table(newbbsTable.log);
-        console.log(newbbsTable2);
-    }, [newbbsTable]);
+  const saveContent = (event, formType) => {
+    const { name, value } = event.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [formType]: {
+        ...prevState[formType],
+        [name]: value,
+      },
+    }));
+  };
 
-    const { campId, campNameList } = HAKONIWAData;
-    const LBBSTITLE = `${campNameList[campId].mark}${campNameList[campId].name}陣営掲示板`;
-
-    return (
-        <div className="App">
-            <h1 className="text-2xl font-bold mb-8">{LBBSTITLE}</h1>
-            <BbsMessages
-                toggleModal={toggleModal}
-                modalSetting={modalSetting}
-                HAKONIWAData={HAKONIWAData}
-            />
-            <div className="fixed bottom-5 left-5">
-                <button
-                    className="p-4 bg-white border rounded-full shadow-md mb-3"
-                    onClick={() => handleSubmit_reload()}
-                >
-                    <span className="RELOAD text-3xl"></span>
-                </button>
-            </div>
-            <div className="fixed bottom-5 right-5">
-                <button
-                    className="p-5 bg-blue-600 text-white border-none rounded shadow-md mb-4 mr-4 "
-                    onClick={() => {
-                        toggleModal();
-                        modalSetting("new", "0");
-                    }}
-                >
-                    新規投稿
-                </button>
-                <button
-                    className="p-5 bg-blue-600 text-white border-none rounded shadow-md"
-                    onClick={() => {
-                        toggleModal();
-                        modalSetting("diplomacy", "0");
-                    }}
-                >
-                    外交文書
-                </button>
-            </div>
-            {isModalOpen && (
-                <ModalWindow onClose={() => toggleModal()}>
-                    {(modalContentType === "new" ||
-                        modalContentType === "reply") && (
-                            <PostForm
-                                onSaveContent={saveContent}
-                                formData={formData}
-                                targetNo={targetNo}
-                                formType={modalContentType}
-                                toggleModal={toggleModal}
-                                modalSetting={modalSetting}
-                            />
-                        )}
-                    {modalContentType === "edit" && (
-                        <PostForm
-                            onSaveContent={saveContent}
-                            formData={formData}
-                            targetNo={targetNo}
-                            formType={modalContentType}
-                            toggleModal={toggleModal}
-                            modalSetting={modalSetting}
-                        />
-                    )}
-                    {modalContentType === "diplomacy" && (
-                        <PostForm
-                            onSaveContent={saveContent}
-                            formData={formData}
-                            targetNo={targetNo}
-                            formType={modalContentType}
-                            toggleModal={toggleModal}
-                            modalSetting={modalSetting}
-                        />
-                    )}
-                    {modalContentType === "image" && (
-                        <ImageDisplay imgURL={modalimgURL} />
-                    )}
-                </ModalWindow>
-            )}
-            <Toast />
-        </div>
+  const handleSubmit_reload = () => {
+    dispatch(
+      update({
+        type: "RELOAD",
+      }),
     );
+  };
+
+  useEffect(() => {
+    console.log(newbbsTable.timeline);
+    console.table(newbbsTable.log);
+  }, [newbbsTable]);
+
+  const { campId, campNameList } = HAKONIWAData;
+  const LBBSTITLE = `${campNameList[campId].mark}${campNameList[campId].name}陣営掲示板`;
+
+  return (
+    <div className="App">
+      <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
+      <BbsMessages toggleModal={toggleModal} modalSetting={modalSetting} />
+      <div className="fixed bottom-5 left-5">
+        <button
+          className="mb-3 rounded-full border bg-white p-4 shadow-md"
+          onClick={() => handleSubmit_reload()}
+        >
+          <span className="RELOAD text-3xl"></span>
+        </button>
+      </div>
+      <div className="fixed bottom-5 right-5">
+        <button
+          className="mb-4 mr-4 rounded border-none bg-blue-600 p-5 text-white shadow-md "
+          onClick={() => {
+            toggleModal();
+            modalSetting("new", "0");
+          }}
+        >
+          新規投稿
+        </button>
+        <button
+          className="rounded border-none bg-blue-600 p-5 text-white shadow-md"
+          onClick={() => {
+            toggleModal();
+            modalSetting("diplomacy", "0");
+          }}
+        >
+          外交文書
+        </button>
+      </div>
+      {isModalOpen && (
+        <ModalWindow onClose={() => toggleModal()}>
+          {(modalContentType === "new" || modalContentType === "reply") && (
+            <PostForm
+              onSaveContent={saveContent}
+              formData={formData}
+              targetNo={targetNo}
+              formType={modalContentType}
+              toggleModal={toggleModal}
+              modalSetting={modalSetting}
+            />
+          )}
+          {modalContentType === "edit" && (
+            <PostForm
+              onSaveContent={saveContent}
+              formData={formData}
+              targetNo={targetNo}
+              formType={modalContentType}
+              toggleModal={toggleModal}
+              modalSetting={modalSetting}
+            />
+          )}
+          {modalContentType === "diplomacy" && (
+            <PostForm
+              onSaveContent={saveContent}
+              formData={formData}
+              targetNo={targetNo}
+              formType={modalContentType}
+              toggleModal={toggleModal}
+              modalSetting={modalSetting}
+            />
+          )}
+          {modalContentType === "image" && (
+            <ImageDisplay imgURL={modalimgURL} />
+          )}
+        </ModalWindow>
+      )}
+      <Toast />
+    </div>
+  );
 }
 
 // 掲示板の中身を表示
-function BbsMessages({ toggleModal, modalSetting, HAKONIWAData }) {
-    const newbbsTable = useSelector(selectNewbbsTable);
-    let MessageArray = [];
+function BbsMessages({ toggleModal, modalSetting }) {
+  const newbbsTable = useSelector(selectNewbbsTable);
+  let MessageArray = [];
 
-    // bbsTable.timelineの順でMessageをMessageArrayに入れる
-    const renderMessage = (messageData, depth) => {
-        return (
-            <Message
-                key={messageData.No}
-                messageData={messageData}
-                indent={depth}
-                toggleModal={toggleModal}
-                modalSetting={modalSetting}
-            ></Message>
-        );
-    };
-
-    const addMessagesRecursively = (timelineNode, depth = 0) => {
-        Object.keys(timelineNode).forEach((key) => {
-            const messageData = newbbsTable.log.find(
-                (message) => message.No === key
-            );
-            if (messageData) {
-                const message = renderMessage(messageData, depth);
-                if (depth === 0) {
-                    MessageArray.push([message]); // 新しいグループを作成
-                } else {
-                    MessageArray[MessageArray.length - 1].push(message);
-                }
-            }
-            if (typeof timelineNode[key] === "object") {
-                addMessagesRecursively(timelineNode[key], depth + 1);
-            }
-        });
-    };
-    addMessagesRecursively(newbbsTable.timeline);
-
-    // MessageArrayを最新順に並び替える
-    MessageArray.sort((a, b) => {
-        const maxWritenTimeA = Math.max(
-            ...a.map((message) => message.props.messageData.writenTime)
-        );
-        const maxWritenTimeB = Math.max(
-            ...b.map((message) => message.props.messageData.writenTime)
-        );
-        return maxWritenTimeB - maxWritenTimeA;
-    });
-
-    // 最後に固定メッセージをチェックしてあったら付け足す
-    const importMessage = newbbsTable.log.find(
-        (message) => message.important === true
-    );
-    if (importMessage) {
-        MessageArray.unshift([renderMessage(importMessage, 0)]);
-    }
-
+  // bbsTable.timelineの順でMessageをMessageArrayに入れる
+  const renderMessage = (messageData, depth) => {
     return (
-        <>
-            {MessageArray.map((messageGroup, index) => (
-                <div
-                    key={index}
-                    className="rounded-sm w-11/12 mx-auto mt-4 p-1 border border-gray-300 bg-gray-200 shadow-sm ring-2 ring-offset-2 ring-gray-200"
-                >
-                    {messageGroup}
-                </div>
-            ))}
-        </>
+      <Message
+        key={messageData.No}
+        messageData={messageData}
+        indent={depth}
+        toggleModal={toggleModal}
+        modalSetting={modalSetting}
+      ></Message>
     );
+  };
+
+  const addMessagesRecursively = (timelineNode, depth = 0) => {
+    Object.keys(timelineNode).forEach((key) => {
+      const messageData = newbbsTable.log.find((message) => message.No === key);
+      if (messageData) {
+        const message = renderMessage(messageData, depth);
+        if (depth === 0) {
+          MessageArray.push([message]); // 新しいグループを作成
+        } else {
+          MessageArray[MessageArray.length - 1].push(message);
+        }
+      }
+      if (typeof timelineNode[key] === "object") {
+        addMessagesRecursively(timelineNode[key], depth + 1);
+      }
+    });
+  };
+  addMessagesRecursively(newbbsTable.timeline);
+
+  // MessageArrayを最新順に並び替える
+  MessageArray.sort((a, b) => {
+    const maxWritenTimeA = Math.max(
+      ...a.map((message) => message.props.messageData.writenTime),
+    );
+    const maxWritenTimeB = Math.max(
+      ...b.map((message) => message.props.messageData.writenTime),
+    );
+    return maxWritenTimeB - maxWritenTimeA;
+  });
+
+  // 最後に固定メッセージをチェックしてあったら付け足す
+  const importMessage = newbbsTable.log.find(
+    (message) => message.important === true,
+  );
+  if (importMessage) {
+    MessageArray.unshift([renderMessage(importMessage, 0)]);
+  }
+
+  return (
+    <>
+      {MessageArray.map((messageGroup, index) => (
+        <div
+          key={index}
+          className="mx-auto mt-4 w-11/12 rounded-sm border border-gray-300 bg-gray-200 p-1 shadow-sm ring-2 ring-gray-200 ring-offset-2"
+        >
+          {messageGroup}
+        </div>
+      ))}
+    </>
+  );
 }
 
 class FormData {
-    constructor(
-        targetCampId,
-        title = "",
-        name = "",
-        content = "",
-        color = "black"
-    ) {
-        this.targetCampId = targetCampId;
-        this.title = title;
-        this.name = name;
-        this.content = content;
-        this.color = color;
-    }
+  constructor(
+    targetCampId,
+    title = "",
+    name = "",
+    content = "",
+    color = "black",
+  ) {
+    this.targetCampId = targetCampId;
+    this.title = title;
+    this.name = name;
+    this.content = content;
+    this.color = color;
+  }
 }
 
 export default App;

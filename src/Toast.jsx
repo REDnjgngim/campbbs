@@ -1,30 +1,33 @@
 import { useSelector, useDispatch } from "react-redux";
 import { hideToast } from "./redux/toastSlice";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 
 const Toast = () => {
-    const dispatch = useDispatch();
-    const messages = useSelector((state) => state.toast.messages);
+  const dispatch = useDispatch();
+  const messages = useSelector((state) => state.toast.messages);
 
-    useEffect(() => {
-        if (messages.length > 0) {
-            const timer = setTimeout(() => {
-                dispatch(hideToast());
-            }, 1550); // 1.5秒後に自動で消える
+  useEffect(() => {
+    if (messages.length > 0) {
+      const timer = setTimeout(() => {
+        dispatch(hideToast());
+      }, 1550); // 1.5秒後に自動で消える
 
-            return () => clearTimeout(timer); // クリーンアップ
-        }
-    }, [messages, dispatch]);
+      return () => clearTimeout(timer); // クリーンアップ
+    }
+  }, [messages, dispatch]);
 
-    return (
-        <>
-            {messages.map((message, index) => (
-                <div key={index} className="fixed top-0 w-9/12 left-1/2 transform -translate-x-1/2 mt-4 pt-4 pb-4 border border-blue-600 bg-gradient-to-b from-blue-50 to-blue-100/90 rounded shadow-lg z-50 animate-slideIn">
-                    {message}
-                </div>
-            ))}
-        </>
-    );
+  return (
+    <>
+      {messages.map((message, index) => (
+        <div
+          key={index}
+          className="fixed left-1/2 top-0 z-50 mt-4 w-9/12 -translate-x-1/2 animate-slideIn rounded border border-blue-600 bg-gradient-to-b from-blue-50 to-blue-100/90 py-4 shadow-lg"
+        >
+          {message}
+        </div>
+      ))}
+    </>
+  );
 };
 
 export default Toast;
