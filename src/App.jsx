@@ -10,7 +10,6 @@ import Toast from "./Toast";
 import { useSelector, useDispatch } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
 import { createSelector } from "reselect";
-import ApiTest  from "./test/apiTest";
 
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
@@ -150,7 +149,6 @@ function App() {
 
   return (
     <div className="App">
-      <ApiTest />
       <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
       <BbsMessages toggleModal={toggleModal} modalSetting={modalSetting} />
       <div className="fixed bottom-5 left-5">

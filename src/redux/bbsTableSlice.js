@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import bbsLog from "../../public/campBbsData/campBbsLog.json"; // JSONファイルをインポート
 import bbsTimeline from "../../public/campBbsData/campBbsTimeline.json"; // JSONファイルをインポート
 import { showToast } from "./toastSlice";
+import { fetchBbsData } from "../api/axios";
 
 export const bbsTableSlice = createSlice({
   name: "bbsTable",
@@ -50,9 +51,10 @@ export const bbsTableSlice = createSlice({
           // success = true;
           break;
         case "RELOAD":
-          responseBbsTable = messageReloadTest(state);
+          // responseBbsTable = messageReloadTest(state);
           // successMessage = `No.${newMessage.No}の固定を解除しました`;
           // success = true;
+          responseBbsTable = fetchBbsData("get", "/api/camps/1");
           break;
         default:
           responseBbsTable = state; // 変更なしでstateを返す
@@ -215,7 +217,7 @@ const messageReloadTest = (state) => {
 
 export const update = (payload) => (dispatch) => {
   const result = dispatch(bbsTableSlice.actions.update(payload));
-  // console.log(result.meta)
+  // console.log(result)
   // const successMessage = result.meta.requestStatus === 'fulfilled' ? payload.toastMessage : '処理に失敗しました。';
   dispatch(showToast("通信に成功しました"));
 };
