@@ -1,66 +1,66 @@
 import { createSlice } from "@reduxjs/toolkit";
-import bbsLog from "../../public/campBbsData/campBbsLog.json"; // JSONファイルをインポート
-import bbsTimeline from "../../public/campBbsData/campBbsTimeline.json"; // JSONファイルをインポート
+// import bbsLog from "../../public/campBbsData/campBbsLog.json"; // JSONファイルをインポート
+// import bbsTimeline from "../../public/campBbsData/campBbsTimeline.json"; // JSONファイルをインポート
 import { showToast } from "./toastSlice";
 import { fetchBbsData } from "../api/axios";
 
 export const bbsTableSlice = createSlice({
   name: "bbsTable",
   initialState: {
-    log: bbsLog,
-    timeline: bbsTimeline,
+    log: [],
+    timeline: {},
   },
   reducers: {
     update: (state, action) => {
-      const { type, newMessage } = action.payload; // action.payloadから必要な情報を取得
-      console.log(type, newMessage);
+      const { newdata } = action.payload; // action.payloadから必要な情報を取得
+      state.log = newdata.log;
+      state.timeline = newdata.timeline;
+      return state;
       // let successMessage = '';
       // let success = false;
       // let errorMessage = '処理に失敗しました。';
-      let responseBbsTable;
+      // let responseBbsTable;
 
-      switch (type) {
-        case "NEW":
-          responseBbsTable = messageNewTest(state, newMessage);
-          // successMessage = `投稿しました`;
-          // success = true;
-          break;
-        case "EDIT":
-          responseBbsTable = messageEditTest(state, newMessage);
-          // successMessage = `No.${newMessage.No}の編集に成功しました`;
-          // success = true;
-          break;
-        case "REPLY":
-          responseBbsTable = messageReplyTest(state, newMessage);
-          // successMessage = `No.${newMessage.No}に返信しました`;
-          // success = true;
-          break;
-        case "DELETE":
-          responseBbsTable = messageDeleteTest(state, newMessage);
-          // successMessage = `No.${newMessage.No}を削除しました`;
-          // success = true;
-          break;
-        case "PIN":
-          responseBbsTable = messagePinTest(state, newMessage);
-          // successMessage = `No.${newMessage.No}を固定しました`;
-          // success = true;
-          break;
-        case "UNPIN":
-          responseBbsTable = messageUnPinTest(state, newMessage);
-          // successMessage = `No.${newMessage.No}の固定を解除しました`;
-          // success = true;
-          break;
-        case "RELOAD":
-          // responseBbsTable = messageReloadTest(state);
-          // successMessage = `No.${newMessage.No}の固定を解除しました`;
-          // success = true;
-          responseBbsTable = fetchBbsData("get", "/api/camps/1");
-          break;
-        default:
-          responseBbsTable = state; // 変更なしでstateを返す
-      }
-
-      return responseBbsTable;
+      // switch (type) {
+      //   case "NEW":
+      //     responseBbsTable = messageNewTest(state, newMessage);
+      //     // successMessage = `投稿しました`;
+      //     // success = true;
+      //     break;
+      //   case "EDIT":
+      //     responseBbsTable = messageEditTest(state, newMessage);
+      //     // successMessage = `No.${newMessage.No}の編集に成功しました`;
+      //     // success = true;
+      //     break;
+      //   case "REPLY":
+      //     responseBbsTable = messageReplyTest(state, newMessage);
+      //     // successMessage = `No.${newMessage.No}に返信しました`;
+      //     // success = true;
+      //     break;
+      //   case "DELETE":
+      //     responseBbsTable = messageDeleteTest(state, newMessage);
+      //     // successMessage = `No.${newMessage.No}を削除しました`;
+      //     // success = true;
+      //     break;
+      //   case "PIN":
+      //     responseBbsTable = messagePinTest(state, newMessage);
+      //     // successMessage = `No.${newMessage.No}を固定しました`;
+      //     // success = true;
+      //     break;
+      //   case "UNPIN":
+      //     responseBbsTable = messageUnPinTest(state, newMessage);
+      //     // successMessage = `No.${newMessage.No}の固定を解除しました`;
+      //     // success = true;
+      //     break;
+      //   case "RELOAD":
+      //     // responseBbsTable = messageReloadTest(state);
+      //     // successMessage = `No.${newMessage.No}の固定を解除しました`;
+      //     // success = true;
+      //     responseBbsTable = fetchBbsData("get", "/api/camps/1");
+      //     break;
+      //   default:
+      //     responseBbsTable = state; // 変更なしでstateを返す
+      // }
     },
   },
 });

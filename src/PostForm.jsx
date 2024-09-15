@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
 import { createSelector } from "reselect";
+import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
@@ -16,11 +17,10 @@ const selectHAKONIWAData = createSelector(
 
 const selectNewbbsTable = createSelector(
   (state) => state.bbsTable,
-  selectHAKONIWAData,
-  (bbsTable, HAKONIWAData) => ({
-    log: bbsTable.log[HAKONIWAData.campId],
-    timeline: bbsTable.timeline[HAKONIWAData.campId],
-  }),
+  (bbsTable) => ({
+    log: bbsTable.log,
+    timeline: bbsTable.timeline,
+  })
 );
 
 export default function PostForm({
@@ -30,12 +30,14 @@ export default function PostForm({
   formType,
   toggleModal,
   modalSetting,
+  onUpdate
 }) {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   let formSet = formData[formType];
   const HAKONIWAData = useSelector(selectHAKONIWAData);
   const newbbsTable = useSelector(selectNewbbsTable);
   const dispatch = useDispatch();
+  const [updateCampBbsTable] = useUpdateCampBbsTableMutation(); // mutationを定義
 
   useEffect(() => {
     if (formSet && formSet.content) {
@@ -44,7 +46,7 @@ export default function PostForm({
   }, [formSet]);
 
   // メッセージ投稿
-  const handleSubmit_updateTypeCheck = (form) => {
+  const handleSubmit_updateTypeCheck = async (form) => {
     const createNewMessage = (
       form,
       validImages,
@@ -80,10 +82,12 @@ export default function PostForm({
     let [newNo, targetNo] = [form.newNo.value, form.targetNo.value];
 
     let updateType;
+    let updateMethod = "post";
     if (targetNo === "0") {
       updateType = "NEW";
     } else if (targetNo === newNo) {
       updateType = "EDIT";
+      updateMethod = "put";
     } else if (targetNo !== newNo) {
       updateType = "REPLY";
     }
@@ -117,13 +121,10 @@ export default function PostForm({
       targetCampIds,
     );
 
-    dispatch(
-      update({
-        type: updateType,
-        newMessage: createMessage,
-        toastMessage: "hogehoge",
-      }),
-    );
+    const result = await updateCampBbsTable({ campId: HAKONIWAData.campId, method: updateMethod, newMessage: createMessage }); // mutationを呼び出す
+    const { data } = result;
+
+    onUpdate(data);
 
     toggleModal();
     modalSetting(updateType);

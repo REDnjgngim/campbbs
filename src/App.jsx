@@ -10,6 +10,7 @@ import Toast from "./Toast";
 import { useSelector, useDispatch } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
 import { createSelector } from "reselect";
+import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
@@ -23,24 +24,15 @@ const selectHAKONIWAData = createSelector(
 );
 const selectNewbbsTable = createSelector(
   (state) => state.bbsTable,
-  selectHAKONIWAData,
-  (bbsTable, HAKONIWAData) => ({
-    log: bbsTable.log[HAKONIWAData.campId],
-    timeline: bbsTable.timeline[HAKONIWAData.campId],
-  }),
-);
-const selectNewbbsTable2 = createSelector(
-  (state) => state.bbsTable,
   (bbsTable) => ({
-    log: bbsTable.log["2"],
-    timeline: bbsTable.timeline["2"],
-  }),
+    log: bbsTable.log,
+    timeline: bbsTable.timeline,
+  })
 );
 
 function App() {
   const HAKONIWAData = useSelector(selectHAKONIWAData);
   const newbbsTable = useSelector(selectNewbbsTable);
-  const newbbsTable2 = useSelector(selectNewbbsTable2);
   const dispatch = useDispatch();
   const [isModalOpen, setModalOpen] = useState(false); // モーダルの状態を管理
   const [modalContentType, setmodalContentType] = useState(""); // モーダルの状態を管理
@@ -52,6 +44,12 @@ function App() {
     diplomacy: new FormData("2"),
   }); // フォームデータを管理
   const [targetNo, setTargetNo] = useState("0"); // targetNoの状態を追加
+  const [messageField, setMessageField] = useState("読み込み中...");
+  const { data, isSuccess, refetch } = useGetCampBbsTableQuery( HAKONIWAData.campId );
+
+  const handleUpdate = (newData) => {
+    dispatch(update({ newdata: newData }));
+  };
 
   const toggleModal = () => {
     setModalOpen(!isModalOpen);
@@ -132,17 +130,24 @@ function App() {
   };
 
   const handleSubmit_reload = () => {
-    dispatch(
-      update({
-        type: "RELOAD",
-      }),
-    );
-  };
+    refetch();
+    if (isSuccess) {
+      handleUpdate(data)
+    }
+  }
 
   useEffect(() => {
-    console.log(newbbsTable.timeline);
-    console.table(newbbsTable.log);
-  }, [newbbsTable]);
+    if (isSuccess) {
+      dispatch(update({ newdata: data })); // データを更新
+      setMessageField(
+        <BbsMessages
+          toggleModal={toggleModal}
+          modalSetting={modalSetting}
+          onUpdate={handleUpdate} // コールバック関数を渡す
+        />
+      );
+    }
+  }, [data, isSuccess]);
 
   const { campId, campNameList } = HAKONIWAData;
   const LBBSTITLE = `${campNameList[campId].mark}${campNameList[campId].name}陣営掲示板`;
@@ -150,7 +155,7 @@ function App() {
   return (
     <div className="App">
       <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
-      <BbsMessages toggleModal={toggleModal} modalSetting={modalSetting} />
+      {messageField}
       <div className="fixed bottom-5 left-5">
         <button
           className="mb-3 rounded-full border bg-white p-4 shadow-md"
@@ -189,6 +194,7 @@ function App() {
               formType={modalContentType}
               toggleModal={toggleModal}
               modalSetting={modalSetting}
+              onUpdate={handleUpdate}
             />
           )}
           {modalContentType === "edit" && (
@@ -224,6 +230,9 @@ function App() {
 // 掲示板の中身を表示
 function BbsMessages({ toggleModal, modalSetting }) {
   const newbbsTable = useSelector(selectNewbbsTable);
+  if (!newbbsTable.log) {
+    return;
+  }
   let MessageArray = [];
 
   // bbsTable.timelineの順でMessageをMessageArrayに入れる
@@ -295,7 +304,7 @@ class FormData {
     targetCampId,
     title = "",
     name = "",
-    content = "",
+    content = "a",
     color = "black",
   ) {
     this.targetCampId = targetCampId;
