@@ -27,7 +27,7 @@ const selectNewbbsTable = createSelector(
   (bbsTable) => ({
     log: bbsTable.log,
     timeline: bbsTable.timeline,
-  })
+  }),
 );
 
 function App() {
@@ -45,11 +45,9 @@ function App() {
   }); // フォームデータを管理
   const [targetNo, setTargetNo] = useState("0"); // targetNoの状態を追加
   const [messageField, setMessageField] = useState("読み込み中...");
-  const { data, isSuccess, refetch } = useGetCampBbsTableQuery( HAKONIWAData.campId );
-
-  const handleUpdate = (newData) => {
-    dispatch(update({ newdata: newData }));
-  };
+  const { data, isSuccess, refetch } = useGetCampBbsTableQuery(
+    HAKONIWAData.campId,
+  );
 
   const toggleModal = () => {
     setModalOpen(!isModalOpen);
@@ -72,6 +70,7 @@ function App() {
         },
       }));
     } else if (formType === "edit" && !isSameModalWindow) {
+      console.log(newbbsTable)
       const messageData = newbbsTable.log.find(
         (message) => message.No === newTargetNo,
       );
@@ -90,7 +89,7 @@ function App() {
       } else {
         console.error("メッセージデータが見つかりませんでした。");
       }
-    } else if (formType === "NEW") {
+    } else if (formType === "new") {
       // 新規投稿後
       setFormData((prevState) => ({
         ...prevState,
@@ -105,7 +104,7 @@ function App() {
           content: ``,
         },
       }));
-    } else if (formType === "REPLY") {
+    } else if (formType === "reply") {
       // 返信後
       setFormData((prevState) => ({
         ...prevState,
@@ -132,19 +131,15 @@ function App() {
   const handleSubmit_reload = () => {
     refetch();
     if (isSuccess) {
-      handleUpdate(data)
+      dispatch(update({ newdata: data }));
     }
-  }
+  };
 
   useEffect(() => {
     if (isSuccess) {
-      dispatch(update({ newdata: data })); // データを更新
+      dispatch(update({ newdata: data }));
       setMessageField(
-        <BbsMessages
-          toggleModal={toggleModal}
-          modalSetting={modalSetting}
-          onUpdate={handleUpdate} // コールバック関数を渡す
-        />
+        <BbsMessages toggleModal={toggleModal} modalSetting={modalSetting} />,
       );
     }
   }, [data, isSuccess]);
@@ -194,7 +189,6 @@ function App() {
               formType={modalContentType}
               toggleModal={toggleModal}
               modalSetting={modalSetting}
-              onUpdate={handleUpdate}
             />
           )}
           {modalContentType === "edit" && (
@@ -304,7 +298,7 @@ class FormData {
     targetCampId,
     title = "",
     name = "",
-    content = "a",
+    content = "",
     color = "black",
   ) {
     this.targetCampId = targetCampId;

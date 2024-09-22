@@ -1,42 +1,36 @@
-import { createApi } from "@reduxjs/toolkit/query/react";
-import axios from "axios";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const axiosInstance = axios.create({
-    baseURL: "http://localhost:8080",
-    timeout: 2000,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
+const baseHeaders = (headers) => {
+  headers.set('Content-Type', 'application/json');
+  headers.set('Access-Control-Request-Headers', 'origin, x-requested-with');
+  return headers;
+};
 
 export const campApi = createApi({
-    baseQuery: async (args) => {
-        return axiosInstance[args.method](args.url, args.data)
-            .then((response) => {
-                return { data: response.data };
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-                throw error;
-            });
-    },
-    endpoints: (builder) => ({
-        getCampBbsTable: builder.query({
-            query: (campId) => ({
-                method: "get",
-                url: `/api/camps/${campId}`,
-            }),
-        }),
-        updateCampBbsTable: builder.mutation({
-          query: ({ campId, method, newMessage }) => ({
-            method: method,
-            url: `/api/camps/${campId}`,
-            data: newMessage,
-          }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: "http://localhost:8080",
+    mode: 'cors',
+    // credentials: 'include',
+    prepareHeaders: baseHeaders,
+    timeout: 2000,
+  }),
+  endpoints: (builder) => ({
+    getCampBbsTable: builder.query({
+      query: (campId) => ({
+        method: "get",
+        url: `/api/camps/${campId}`,
       }),
     }),
+    updateCampBbsTable: builder.mutation({
+      query: ({ campId, subMethod, newMessage }) => ({
+        method: "post",
+        url: `/api/camps/${campId}/${subMethod}`,
+        body: newMessage, // dataをbodyに変更
+      }),
+    }),
+  }),
 });
 
 // use + endpointsで設定した名前 + QueryでHooksが作られる
 export const { useGetCampBbsTableQuery, useUpdateCampBbsTableMutation } =
-    campApi;
+  campApi;

@@ -20,7 +20,7 @@ const selectNewbbsTable = createSelector(
   (bbsTable) => ({
     log: bbsTable.log,
     timeline: bbsTable.timeline,
-  })
+  }),
 );
 
 export default function PostForm({
@@ -30,7 +30,6 @@ export default function PostForm({
   formType,
   toggleModal,
   modalSetting,
-  onUpdate
 }) {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   let formSet = formData[formType];
@@ -53,24 +52,30 @@ export default function PostForm({
       newNo,
       ReplyNo,
       targetCampId,
-    ) => ({
-      // 編集含めて全て必要
-      title: form.title.value,
-      owner: form.name.value,
-      content: form.content.value,
-      contentColor: form.color.value,
-      // 新規投稿時のみ必要
-      No: newNo,
-      islandId: HAKONIWAData.islandId,
-      islandName: HAKONIWAData.islandName,
-      writenTurn: HAKONIWAData.islandTurn,
-      writenTime: Math.floor(new Date().getTime() / 1000),
-      parentId: ReplyNo === newNo ? null : ReplyNo,
-      writenCampId: HAKONIWAData.campId,
-      targetCampIds: targetCampId,
-      important: false,
-      images: validImages,
-    });
+    ) => {
+      const message = {
+        // 編集含めて全て必要
+        No: newNo,
+        title: form.title.value,
+        owner: form.name.value,
+        content: form.content.value,
+        contentColor: form.color.value,
+      };
+
+      if (updateType === "new" || updateType === "reply") {
+        // 新規投稿時のみ必要
+        message.islandId = HAKONIWAData.islandId;
+        message.islandName = HAKONIWAData.islandName;
+        message.writenTurn = HAKONIWAData.islandTurn;
+        message.parentId = ReplyNo === newNo ? null : ReplyNo;
+        message.writenCampId = HAKONIWAData.campId;
+        message.targetCampIds = targetCampId;
+        message.important = false;
+        message.images = validImages;
+      }
+
+      return message;
+    };
 
     if (formType === "diplomacy") {
       if (
@@ -82,17 +87,15 @@ export default function PostForm({
     let [newNo, targetNo] = [form.newNo.value, form.targetNo.value];
 
     let updateType;
-    let updateMethod = "post";
     if (targetNo === "0") {
-      updateType = "NEW";
+      updateType = "new";
     } else if (targetNo === newNo) {
-      updateType = "EDIT";
-      updateMethod = "put";
+      updateType = "edit";
     } else if (targetNo !== newNo) {
-      updateType = "REPLY";
+      updateType = "reply";
     }
 
-    if (updateType !== "NEW") {
+    if (updateType !== "new") {
       let index = newbbsTable.log.findIndex(
         (message) => message.No === targetNo,
       );
@@ -121,13 +124,17 @@ export default function PostForm({
       targetCampIds,
     );
 
-    const result = await updateCampBbsTable({ campId: HAKONIWAData.campId, method: updateMethod, newMessage: createMessage }); // mutationを呼び出す
+    const result = await updateCampBbsTable({
+      campId: HAKONIWAData.campId,
+      subMethod: updateType,
+      newMessage: createMessage,
+    }); // mutationを呼び出す
     const { data } = result;
 
-    onUpdate(data);
+    dispatch(update({ newdata: data })); // データを更新
 
     toggleModal();
-    modalSetting(updateType);
+    modalSetting(updateType, targetNo);
 
     return false;
   };
