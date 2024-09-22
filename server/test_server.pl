@@ -1,12 +1,14 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use utf8;
 
 # サーバーの実装
 {
     package MyWebServer;
     use base qw(HTTP::Server::Simple::CGI);
     use JSON;
+    use Data::Dumper;
 
     sub handle_request {
         my ($self, $cgi) = @_;
@@ -16,15 +18,13 @@ use warnings;
         # ヘッダー
         print "HTTP/1.0 200 OK\n";
         print "Access-Control-Allow-Origin: *\n";
+        print "Access-Control-Allow-Headers: Content-Type\n";
         print "Content-Type: application/json\n\n";
 
         # 汎用的な処理
         my %routes = (
             "GET" => \&get_api,
-            "POST" => \&post_api,
-            "PUT" => \&put_api,
-            "DELETE" => \&delete_api,
-            # 他のパスと関数を追加可能
+            "POST" => \&post_api
         );
 
         if($cgi->path_info() eq "/testResponse"){
@@ -41,29 +41,23 @@ use warnings;
             my ($cgi) = @_;
             my ($campNo) = ($cgi->path_info()) =~ /\/camps\/(\d+)/;  # パスを分割
 
-            # 掲示板ログ
-            my $log;
-            my $camp_log = "{}";
-            if (-e "../public/campBbsData/campBbsLog.json") {
+            my ($log, $timeline);
+            my ($camp_log, $camp_timeline) = ("{}", "{}");
+            # 掲示板ログ・タイムラインが両方ある場合のみ
+            if (-e "../public/campBbsData/campBbsLog.json" && -e "../public/campBbsData/campBbsTimeline.json") {
                 local $/; # 入力レコード区切りを無視
-                open my $fh, "../public/campBbsData/campBbsLog.json" or die $!;
-                $log = <$fh>;
-                close $fh;
+
+                open my $fh1, "../public/campBbsData/campBbsLog.json" or die $!;
+                $log = <$fh1>;
+                close $fh1;
+
+                open my $fh2, "../public/campBbsData/campBbsTimeline.json" or die $!;
+                $timeline = <$fh2>;
+                close $fh2;
 
                 my $log_json = decode_json($log);
-                $camp_log = encode_json($log_json->{"$campNo"});
-            }
-
-            # 掲示板タイムライン
-            my $timeline;
-            my $camp_timeline = "{}";
-            if (-e "../public/campBbsData/campBbsTimeline.json") {
-                local $/; # 入力レコード区切りを無視
-                open my $fh, "../public/campBbsData/campBbsTimeline.json" or die $!;
-                $timeline = <$fh>;
-                close $fh;
-
                 my $timeline_json = decode_json($timeline);
+                $camp_log = encode_json($log_json->{"$campNo"});
                 $camp_timeline = encode_json($timeline_json->{"$campNo"});
             }
 
@@ -73,20 +67,170 @@ use warnings;
 
         sub post_api {
             my ($cgi) = @_;
-            my ($api, $data, $campNo, $messageNo) = split('/', $cgi->path_info());  # パスを分割
+            my ($campNo, $sub_method) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)/;  # パスを分割
+            my %messageHandlers = (
+                "new" => \&post_newMessage,
+                "reply" => \&post_newMessage,
+                "edit" => \&post_editMessage,
+                "pin" => \&post_editMessage,
+                "delete" => \&post_deleteMessage,
+            );
+            my $newMessage =  $cgi->param('POSTDATA');
+            my $newMessage_json = decode_json($newMessage);
 
+            my ($log, $timeline);
+            my ($camp_log, $camp_timeline) = ("{}", "{}");
+            # 掲示板ログ・タイムラインが両方ある場合のみ
+            if (-e "../public/campBbsData/campBbsLog.json" && -e "../public/campBbsData/campBbsTimeline.json") {
+                local $/; # 入力レコード区切りを無視
+
+                open my $fh1, "../public/campBbsData/campBbsLog.json" or die $!;
+                $log = <$fh1>;
+                close $fh1;
+
+                open my $fh2, "../public/campBbsData/campBbsTimeline.json" or die $!;
+                $timeline = <$fh2>;
+                close $fh2;
+
+                my $bbsTable_log = decode_json($log);
+                my $bbsTable_timeline = decode_json($timeline);
+
+                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json);
+
+                $camp_log = encode_json($bbsTable_log->{$campNo});
+                $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
+
+                open $fh1, "> ../public/campBbsData/campBbsLog.json" or die $!;
+                print $fh1 encode_json($bbsTable_log);
+                close $fh1;
+
+                open $fh2, "> ../public/campBbsData/campBbsTimeline.json" or die $!;
+                print $fh2 encode_json($bbsTable_timeline);
+                close $fh2;
+            }
+
+            # 出力
+            print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
         }
 
-        sub put_api {
-            my ($cgi) = @_;
-            my ($api, $data, $campNo, $messageNo) = split('/', $cgi->path_info());  # パスを分割
+        sub post_newMessage{
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
+            # POST
+            my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
+            # 陣営ごとに処理
+            foreach my $id (@campIds){
+                # log追加処理
+                my $newNo = 0;
+                foreach my $message (@{$bbsTable_log->{$id}}) {
+                    if ($message->{"No"} > $newNo) {
+                        $newNo = $message->{"No"};
+                    }
+                }
+                $newNo++; # 新規番号
+                $newMessage_json->{"No"} = "$newNo";
+                $newMessage_json->{"writenTime"} = int(time());
+                # log追加
+                push(@{$bbsTable_log->{$id}}, $newMessage_json);
 
+                # timeline追加処理
+                my $current = $bbsTable_timeline->{$campNo};
+                if($newMessage_json->{"parentId"}){
+                    # 返信は階層を辿る
+                    my $treePath = timeline_Index_Recursively($current, $newMessage_json->{"parentId"});
+                    my @pathArray = split(/,/, $treePath);
+                    for (my $i = 0; $i <= $#pathArray; $i++) {
+                        $current = $current->{$pathArray[$i]}; # パスをたどる
+                    }
+                }
+                $current->{$newMessage_json->{"No"}} = {};
+            }
+
+            return 1;
         }
 
-        sub delete_api {
-            my ($cgi) = @_;
-            my ($api, $data, $campNo, $messageNo) = split('/', $cgi->path_info());  # パスを分割
+        sub post_editMessage{
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
+            # PUT
+            my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
+            if($index > -1){
+                # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
+                if($newMessage_json->{'important'}){
+                    my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
+                    $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
+                }
 
+                my $editMessage = $bbsTable_log->{$campNo}[$index];
+                foreach my $key (keys %{$newMessage_json}) {
+                    next if($key eq "No");
+                    $editMessage->{$key} = $newMessage_json->{$key};
+                }
+                return 1;
+            }
+            return 0;
+        }
+
+        sub post_deleteMessage{
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
+            # DELETE
+            # log削除
+            my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
+            if($index > -1){
+                # log削除
+                my $editMessage = $bbsTable_log->{$campNo}[$index];
+                my $deleteMessage = {
+                    "title" => "このメッセージは削除されました",
+                    "owner" => "",
+                    "islandName" => "",
+                    "content" => "",
+                    "writenTurn" => -1,
+                    "contentColor" => "",
+                    "important" => 1 == 0,
+                    "images" => [],
+                };
+                foreach my $key (keys %{$deleteMessage}) {
+                    next if($key eq "No");
+                    $editMessage->{$key} = $deleteMessage->{$key};
+                }
+
+                # timeline削除
+                my $current = $bbsTable_timeline->{$campNo};
+                my $treePath = timeline_Index_Recursively($current, $newMessage_json->{"No"});
+                if($treePath ne ""){
+                    my @pathArray = split(/,/, $treePath);
+                    for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
+                        $current = $current->{$pathArray[$i]}; # パスをたどる
+                    }
+                    # 子にメッセージがなかったら削除可能
+                    if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
+                        delete $current->{$newMessage_json->{"No"}};
+                    }
+                }
+
+                return 1;
+            }
+            return 0;
+        }
+
+        sub timeline_Index_Recursively {
+            my ($timelineNode, $parentId, $path) = @_;
+            my $foundPath = "";
+
+            foreach my $key (keys %{$timelineNode}) {
+                my $newPath = $path ? "$path,$key" : $key;
+                if ($key eq $parentId) {
+                    # パスが見つかったので返す
+                    $foundPath = $newPath;
+                    last;
+                }
+                if (ref($timelineNode->{$key}) eq 'HASH') {
+                    $foundPath = timeline_Index_Recursively($timelineNode->{$key}, $parentId, $newPath);
+                    if ($foundPath ne "") {
+                        # パスが見つかってるので返す
+                        last;
+                    }
+                }
+            }
+            return $foundPath;
         }
     }
 }

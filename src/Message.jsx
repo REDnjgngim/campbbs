@@ -2,6 +2,7 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
 import { createSelector } from "reselect";
+import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
@@ -14,6 +15,14 @@ const selectHAKONIWAData = createSelector(
   }),
 );
 
+const selectNewbbsTable = createSelector(
+  (state) => state.bbsTable,
+  (bbsTable) => ({
+    log: bbsTable.log,
+    timeline: bbsTable.timeline,
+  }),
+);
+
 export function Message({ messageData, indent, toggleModal, modalSetting }) {
   const HAKONIWAData = useSelector(selectHAKONIWAData);
   const dispatch = useDispatch();
@@ -22,6 +31,7 @@ export function Message({ messageData, indent, toggleModal, modalSetting }) {
   const isOwnMessage = messageData.islandId === HAKONIWAData.islandId;
   const isImportant = messageData.important;
   const isDiplomacyMessage = messageData.targetCampIds.length > 0;
+  const [updateCampBbsTable] = useUpdateCampBbsTableMutation(); // mutationを定義
 
   const Mtitle = () => {
     let { No, title } = messageData;
@@ -105,7 +115,7 @@ export function Message({ messageData, indent, toggleModal, modalSetting }) {
       timeZone: "Asia/Tokyo",
     });
 
-    const messageDelete = () => {
+    const messageDelete = async () => {
       if (!messageData) {
         alert(`このメッセージは既に存在していません`);
         return;
@@ -115,34 +125,38 @@ export function Message({ messageData, indent, toggleModal, modalSetting }) {
         return;
       }
 
-      dispatch(
-        update({
-          type: "DELETE",
-          newMessage: messageData,
-        }),
-      );
+      const result = await updateCampBbsTable({
+        campId: HAKONIWAData.campId,
+        subMethod: "delete",
+        newMessage: { No: `${No}` },
+      }); // mutationを呼び出す
+      const { data } = result;
+
+      dispatch(update({ newdata: data })); // データを更新
     };
 
-    const messagePin = () => {
+    const messagePin = async () => {
       if (!messageData) {
-        alert(`このメッセージは既に存在していません`);
+        alert(`No.${No}のメッセージは既に存在していません`);
         return;
       }
 
-      const [message, UPDATETYPE] = isImportant
-        ? ["このメッセージの固定を解除しますか？", "UNPIN"]
-        : ["このメッセージを最上部に固定しますか？", "PIN"];
+      const message = isImportant
+        ? `No.${No}のメッセージの固定を解除しますか？`
+        : `No.${No}のメッセージを最上部に固定しますか？`;
 
       if (!window.confirm(message)) {
         return;
       }
 
-      dispatch(
-        update({
-          type: UPDATETYPE,
-          newMessage: messageData,
-        }),
-      );
+      const result = await updateCampBbsTable({
+        campId: HAKONIWAData.campId,
+        subMethod: "pin",
+        newMessage: { No: `${No}`, important: !isImportant }
+      }); // mutationを呼び出す
+      const { data } = result;
+
+      dispatch(update({ newdata: data })); // データを更新
     };
 
     return (
