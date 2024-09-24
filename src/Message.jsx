@@ -7,11 +7,13 @@ import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
   (HAKONIWAData) => ({
-    islandTurn: HAKONIWAData.islandTurn,
     islandId: HAKONIWAData.islandId,
+    islandPassword: HAKONIWAData.islandPassword,
     islandName: HAKONIWAData.islandName,
     campId: HAKONIWAData.campId,
-    campNameList: HAKONIWAData.campNameList,
+    viewLastTime: HAKONIWAData.viewLastTime,
+    campLists: HAKONIWAData.campLists,
+    islandTurn: HAKONIWAData.islandTurn,
   }),
 );
 
@@ -69,12 +71,12 @@ export function Message({ messageData, indent, toggleModal, modalSetting }) {
 
     if (isDiplomacyMessage) {
       if (writenCampId !== HAKONIWAData.campId) {
-        let { name, mark } = HAKONIWAData.campNameList[writenCampId];
+        let { name, mark } = HAKONIWAData.campLists[writenCampId];
         diplomacyCampName = `${mark}${name}から【外交文書】が届いています。`;
       } else {
         let targetCampName = [];
         targetCampIds.forEach((id) => {
-          let { name, mark } = HAKONIWAData.campNameList[id];
+          let { name, mark } = HAKONIWAData.campLists[id];
           targetCampName.push(`${mark}${name}`);
         });
         diplomacyCampName =
