@@ -3,15 +3,13 @@ import { createSlice } from "@reduxjs/toolkit";
 export const HAKONIWADataSlice = createSlice({
   name: "HAKONIWAData",
   initialState: {
-    islandTurn: 9,
-    islandId: 1,
-    islandName: "Nepthune島",
-    campId: "1",
-    campNameList: {
-      1: { name: "魏", mark: "∀" },
-      2: { name: "呉", mark: "Ψ" },
-      3: { name: "蜀", mark: "Ж" },
-    },
+    islandId: window.islandId,
+    islandPassword: window.islandPassword,
+    islandName: window.islandName,
+    campId: window.campId,
+    viewLastTime: window.viewLastTime,
+    campLists: window.campLists,
+    islandTurn: window.islandTurn,
   },
   setParam: (state, action) => {
     state.islandId = action.payload.islandId;

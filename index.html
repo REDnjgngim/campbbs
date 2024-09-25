@@ -8,6 +8,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // テスト用にサーバーからのデータを模擬
+      window.islandId = 1;
+      window.islandPassword = "hogehoge";
+      window.islandName = "Nepthune島";
+      window.campId = "1";
+      window.viewLastTime = 1727184079;
+      window.campLists = {
+        1: { name: "魏", mark: "∀" },
+        2: { name: "呉", mark: "Ψ" },
+        3: { name: "蜀", mark: "Ж" },
+      };
+      window.islandTurn = 67;
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

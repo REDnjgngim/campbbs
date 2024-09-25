@@ -15,11 +15,13 @@ import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
   (HAKONIWAData) => ({
-    islandTurn: HAKONIWAData.islandTurn,
     islandId: HAKONIWAData.islandId,
+    islandPassword: HAKONIWAData.islandPassword,
     islandName: HAKONIWAData.islandName,
     campId: HAKONIWAData.campId,
-    campNameList: HAKONIWAData.campNameList,
+    viewLastTime: HAKONIWAData.viewLastTime,
+    campLists: HAKONIWAData.campLists,
+    islandTurn: HAKONIWAData.islandTurn,
   }),
 );
 const selectNewbbsTable = createSelector(
@@ -144,8 +146,8 @@ function App() {
     }
   }, [data, isSuccess]);
 
-  const { campId, campNameList } = HAKONIWAData;
-  const LBBSTITLE = `${campNameList[campId].mark}${campNameList[campId].name}陣営掲示板`;
+  const { campId, campLists } = HAKONIWAData;
+  const LBBSTITLE = `${campLists[campId].mark}${campLists[campId].name}陣営掲示板`;
 
   return (
     <div className="App">
