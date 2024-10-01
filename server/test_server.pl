@@ -30,7 +30,8 @@ use utf8;
         if($cgi->path_info() eq "/testResponse"){
             print "{\"message\": \"response OK\"}";
         } elsif (exists $routes{$method}) {
-            $routes{$method}->($cgi);
+            my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
+            $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
         } else {
             print "HTTP/1.0 404 Not Found\n";
             print "Content-Type: text/plain\n\n";
@@ -38,22 +39,15 @@ use utf8;
         }
 
         sub get_api {
-            my ($cgi) = @_;
+            my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
             my ($campNo) = ($cgi->path_info()) =~ /\/camps\/(\d+)/;  # パスを分割
 
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
             # 掲示板ログ・タイムラインが両方ある場合のみ
-            if (-e "../public/campBbsData/campBbsLog.json" && -e "../public/campBbsData/campBbsTimeline.json") {
-                local $/; # 入力レコード区切りを無視
-
-                open my $fh1, "../public/campBbsData/campBbsLog.json" or die $!;
-                $log = <$fh1>;
-                close $fh1;
-
-                open my $fh2, "../public/campBbsData/campBbsTimeline.json" or die $!;
-                $timeline = <$fh2>;
-                close $fh2;
+            if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
+                my $log = read_file_with_lock($BBSLOG_FILEPATH);
+                my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
 
                 my $log_json = decode_json($log);
                 my $timeline_json = decode_json($timeline);
@@ -66,7 +60,7 @@ use utf8;
         }
 
         sub post_api {
-            my ($cgi) = @_;
+            my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
             my ($campNo, $sub_method) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)/;  # パスを分割
             my %messageHandlers = (
                 "new" => \&post_newMessage,
@@ -81,16 +75,9 @@ use utf8;
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
             # 掲示板ログ・タイムラインが両方ある場合のみ
-            if (-e "../public/campBbsData/campBbsLog.json" && -e "../public/campBbsData/campBbsTimeline.json") {
-                local $/; # 入力レコード区切りを無視
-
-                open my $fh1, "../public/campBbsData/campBbsLog.json" or die $!;
-                $log = <$fh1>;
-                close $fh1;
-
-                open my $fh2, "../public/campBbsData/campBbsTimeline.json" or die $!;
-                $timeline = <$fh2>;
-                close $fh2;
+            if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
+                my $log = read_file_with_lock($BBSLOG_FILEPATH);
+                my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
 
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
@@ -100,13 +87,8 @@ use utf8;
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                open $fh1, "> ../public/campBbsData/campBbsLog.json" or die $!;
-                print $fh1 encode_json($bbsTable_log);
-                close $fh1;
-
-                open $fh2, "> ../public/campBbsData/campBbsTimeline.json" or die $!;
-                print $fh2 encode_json($bbsTable_timeline);
-                close $fh2;
+                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
+                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
             }
 
             # 出力
@@ -231,6 +213,32 @@ use utf8;
                 }
             }
             return $foundPath;
+        }
+
+        sub read_file_with_lock {
+            my ($filename) = @_;
+            local $/; # 入力レコード区切りを無視
+
+            open my $fh, "<", $filename or die $!;
+            flock($fh, 1); # 共有ロック
+
+            my $content = <$fh>;
+
+            flock($fh, 8); # ロック解除
+            close $fh;
+            return $content;
+        }
+
+        sub write_file_with_lock {
+            my ($filename, $content) = @_;
+
+            open my $fh, ">", $filename or die $!;
+            flock($fh, 2); # 排他ロック
+
+            print $fh $content;
+
+            flock($fh, 8); # ロック解除
+            close $fh;
         }
     }
 }
