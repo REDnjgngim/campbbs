@@ -36,16 +36,10 @@ function App() {
   const HAKONIWAData = useSelector(selectHAKONIWAData);
   const newbbsTable = useSelector(selectNewbbsTable);
   const dispatch = useDispatch();
-  const [isModalOpen, setModalOpen] = useState(false); // モーダルの状態を管理
-  const [modalContentType, setmodalContentType] = useState(""); // モーダルの状態を管理
-  const [modalimgURL, setmodalimgURL] = useState(""); // モーダルの状態を管理
-  const [formData, setFormData] = useState({
-    new: new FormData("1"),
-    reply: new FormData("1"),
-    edit: new FormData("1"),
-    diplomacy: new FormData("2"),
-  }); // フォームデータを管理
-  const [targetNo, setTargetNo] = useState("0"); // targetNoの状態を追加
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [modalContentType, setmodalContentType] = useState("");
+  const [modalimgURL, setmodalimgURL] = useState("");
+  const [formTemplate, setformTemplate] = useState("");
   const [messageField, setMessageField] = useState("読み込み中...");
   const { data, isSuccess, refetch } = useGetCampBbsTableQuery(
     HAKONIWAData.campId,
@@ -55,79 +49,22 @@ function App() {
     setModalOpen(!isModalOpen);
   };
 
-  const modalSetting = (formType, newTargetNo, imgURL) => {
+  const modalSetting = (formType, imgURL) => {
     setmodalContentType(formType);
-    if (newTargetNo !== "") setTargetNo(newTargetNo);
-    const isSameModalWindow = targetNo === newTargetNo;
-
     if (formType === "image") {
       setmodalimgURL(imgURL);
-    } else if (formType === "reply" && !isSameModalWindow) {
-      setFormData((prevState) => ({
-        ...prevState,
-        [formType]: {
-          ...prevState[formType],
-          title: `Re:[No.${newTargetNo}]への返信`,
-          content: ``,
-        },
-      }));
-    } else if (formType === "edit" && !isSameModalWindow) {
-      console.log(newbbsTable)
-      const messageData = newbbsTable.log.find(
-        (message) => message.No === newTargetNo,
-      );
-      if (messageData) {
-        setFormData((prevState) => ({
-          ...prevState,
-          [formType]: {
-            ...prevState[formType],
-            title: messageData.title,
-            name: messageData.owner,
-            content: messageData.content,
-            color: messageData.contentColor,
-            images: messageData.images,
-          },
-        }));
-      } else {
-        console.error("メッセージデータが見つかりませんでした。");
-      }
-    } else if (formType === "new") {
-      // 新規投稿後
-      setFormData((prevState) => ({
-        ...prevState,
-        ["new"]: {
-          ...prevState["new"],
-          title: ``,
-          content: ``,
-        },
-        ["diplomacy"]: {
-          ...prevState["new"],
-          title: ``,
-          content: ``,
-        },
-      }));
-    } else if (formType === "reply") {
-      // 返信後
-      setFormData((prevState) => ({
-        ...prevState,
-        ["reply"]: {
-          ...prevState["reply"],
-          title: ``,
-          content: ``,
-        },
-      }));
     }
   };
 
-  const saveContent = (event, formType) => {
-    const { name, value } = event.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [formType]: {
-        ...prevState[formType],
-        [name]: value,
-      },
-    }));
+  const renderPostForm = (MessageNo, formType) => {
+    setformTemplate(
+      <PostForm
+        formType={formType}
+        toggleModal={toggleModal}
+        modalSetting={modalSetting}
+        MessageNo={MessageNo}
+      />
+    );
   };
 
   const handleSubmit_reload = () => {
@@ -141,7 +78,7 @@ function App() {
     if (isSuccess) {
       dispatch(update({ newdata: data }));
       setMessageField(
-        <BbsMessages toggleModal={toggleModal} modalSetting={modalSetting} />,
+        <BbsMessages toggleModal={toggleModal} modalSetting={modalSetting} renderPostForm={renderPostForm} />,
       );
     }
   }, [data, isSuccess]);
@@ -166,7 +103,7 @@ function App() {
           className="mb-4 mr-4 rounded border-none bg-blue-600 p-5 text-white shadow-md "
           onClick={() => {
             toggleModal();
-            modalSetting("new", "0");
+            renderPostForm("0", "new");
           }}
         >
           新規投稿
@@ -175,7 +112,7 @@ function App() {
           className="rounded border-none bg-blue-600 p-5 text-white shadow-md"
           onClick={() => {
             toggleModal();
-            modalSetting("diplomacy", "0");
+            renderPostForm("0", "diplomacy");
           }}
         >
           外交文書
@@ -183,36 +120,7 @@ function App() {
       </div>
       {isModalOpen && (
         <ModalWindow onClose={() => toggleModal()}>
-          {(modalContentType === "new" || modalContentType === "reply") && (
-            <PostForm
-              onSaveContent={saveContent}
-              formData={formData}
-              targetNo={targetNo}
-              formType={modalContentType}
-              toggleModal={toggleModal}
-              modalSetting={modalSetting}
-            />
-          )}
-          {modalContentType === "edit" && (
-            <PostForm
-              onSaveContent={saveContent}
-              formData={formData}
-              targetNo={targetNo}
-              formType={modalContentType}
-              toggleModal={toggleModal}
-              modalSetting={modalSetting}
-            />
-          )}
-          {modalContentType === "diplomacy" && (
-            <PostForm
-              onSaveContent={saveContent}
-              formData={formData}
-              targetNo={targetNo}
-              formType={modalContentType}
-              toggleModal={toggleModal}
-              modalSetting={modalSetting}
-            />
-          )}
+          {formTemplate}
           {modalContentType === "image" && (
             <ImageDisplay imgURL={modalimgURL} />
           )}
@@ -224,7 +132,7 @@ function App() {
 }
 
 // 掲示板の中身を表示
-function BbsMessages({ toggleModal, modalSetting }) {
+function BbsMessages({ toggleModal, modalSetting, renderPostForm }) {
   const newbbsTable = useSelector(selectNewbbsTable);
   if (!newbbsTable.log) {
     return;
@@ -232,7 +140,7 @@ function BbsMessages({ toggleModal, modalSetting }) {
   let MessageArray = [];
 
   // bbsTable.timelineの順でMessageをMessageArrayに入れる
-  const renderMessage = (messageData, depth) => {
+  const renderMessage = (messageData, depth, isFixed) => {
     return (
       <Message
         key={messageData.No}
@@ -240,6 +148,8 @@ function BbsMessages({ toggleModal, modalSetting }) {
         indent={depth}
         toggleModal={toggleModal}
         modalSetting={modalSetting}
+        renderPostForm={renderPostForm}
+        isFixed={isFixed}
       ></Message>
     );
   };
@@ -248,7 +158,7 @@ function BbsMessages({ toggleModal, modalSetting }) {
     Object.keys(timelineNode).forEach((key) => {
       const messageData = newbbsTable.log.find((message) => message.No === key);
       if (messageData) {
-        const message = renderMessage(messageData, depth);
+        const message = renderMessage(messageData, depth, 0);
         if (depth === 0) {
           MessageArray.push([message]); // 新しいグループを作成
         } else {
@@ -278,7 +188,7 @@ function BbsMessages({ toggleModal, modalSetting }) {
     (message) => message.important === true,
   );
   if (importMessage) {
-    MessageArray.unshift([renderMessage(importMessage, 0)]);
+    MessageArray.unshift([renderMessage(importMessage, 0, 1)]);
   }
 
   return (
@@ -293,22 +203,6 @@ function BbsMessages({ toggleModal, modalSetting }) {
       ))}
     </>
   );
-}
-
-class FormData {
-  constructor(
-    targetCampId,
-    title = "",
-    name = "",
-    content = "",
-    color = "black",
-  ) {
-    this.targetCampId = targetCampId;
-    this.title = title;
-    this.name = name;
-    this.content = content;
-    this.color = color;
-  }
 }
 
 export default App;

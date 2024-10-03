@@ -87,8 +87,8 @@ use utf8;
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
-                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
+                # write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
+                # write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
             }
 
             # 出力
@@ -100,31 +100,32 @@ use utf8;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
             # 陣営ごとに処理
-            foreach my $id (@campIds){
+            foreach my $campId (@campIds){
+                my $newMessageForCamp = { %$newMessage_json };
                 # log追加処理
                 my $newNo = 0;
-                foreach my $message (@{$bbsTable_log->{$id}}) {
+                foreach my $message (@{$bbsTable_log->{$campId}}) {
                     if ($message->{"No"} > $newNo) {
                         $newNo = $message->{"No"};
                     }
                 }
                 $newNo++; # 新規番号
-                $newMessage_json->{"No"} = "$newNo";
-                $newMessage_json->{"writenTime"} = int(time());
+                $newMessageForCamp->{"No"} = "$newNo";
+                $newMessageForCamp->{"writenTime"} = int(time());
                 # log追加
-                push(@{$bbsTable_log->{$id}}, $newMessage_json);
+                push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
 
                 # timeline追加処理
-                my $current = $bbsTable_timeline->{$campNo};
-                if($newMessage_json->{"parentId"}){
+                my $current = $bbsTable_timeline->{$campId};
+                if($newMessageForCamp->{"parentId"}){
                     # 返信は階層を辿る
-                    my $treePath = timeline_Index_Recursively($current, $newMessage_json->{"parentId"});
+                    my $treePath = timeline_Index_Recursively($current, $newMessageForCamp->{"parentId"});
                     my @pathArray = split(/,/, $treePath);
                     for (my $i = 0; $i <= $#pathArray; $i++) {
                         $current = $current->{$pathArray[$i]}; # パスをたどる
                     }
                 }
-                $current->{$newMessage_json->{"No"}} = {};
+                $current->{$newMessageForCamp->{"No"}} = {};
             }
 
             return 1;

@@ -1,6 +1,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
+import { formInitial } from "./redux/formTypeParamSlice";
 import { createSelector } from "reselect";
 import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 
@@ -17,7 +18,7 @@ const selectHAKONIWAData = createSelector(
     })
 );
 
-export function Message({ messageData, indent, toggleModal, modalSetting }) {
+export function Message({ messageData, indent, toggleModal, modalSetting, renderPostForm, isFixed }) {
     const HAKONIWAData = useSelector(selectHAKONIWAData);
     const dispatch = useDispatch();
 
@@ -170,22 +171,26 @@ export function Message({ messageData, indent, toggleModal, modalSetting }) {
         return (
             !isDeletedMessage && (
                 <div className="m-0.5 flex items-end pb-1">
-                    <button
-                        className="m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white"
-                        onClick={() => {
-                            toggleModal();
-                            modalSetting("reply", No);
-                        }}
-                    >
-                        返信
-                    </button>
+                    {!isFixed && (
+                        <button
+                            className="m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white"
+                            onClick={() => {
+                                toggleModal();
+                                dispatch(formInitial({ formType: "reply", targetNo: No })); // データを更新
+                                renderPostForm(No, "reply");
+                            }}
+                        >
+                            返信
+                        </button>
+                    )}
                     {isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
                                 className="m-0.5 ml-1 whitespace-nowrap rounded border bg-white p-1.5"
                                 onClick={() => {
                                     toggleModal();
-                                    modalSetting("edit", No);
+                                    dispatch(formInitial({ formType: "edit", targetNo: No, messageData })); // データを更新
+                                    renderPostForm(No, "edit");
                                 }}
                             >
                                 編集

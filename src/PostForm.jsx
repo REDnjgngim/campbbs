@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
+import { formSave, formReset } from "./redux/formTypeParamSlice";
 import { createSelector } from "reselect";
 import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 
 const selectHAKONIWAData = createSelector(
   (state) => state.HAKONIWAData,
   (HAKONIWAData) => ({
-    islandTurn: HAKONIWAData.islandTurn,
     islandId: HAKONIWAData.islandId,
+    islandPassword: HAKONIWAData.islandPassword,
     islandName: HAKONIWAData.islandName,
     campId: HAKONIWAData.campId,
-    campNameList: HAKONIWAData.campNameList,
+    viewLastTime: HAKONIWAData.viewLastTime,
+    campLists: HAKONIWAData.campLists,
+    islandTurn: HAKONIWAData.islandTurn,
   }),
 );
 
@@ -23,26 +26,34 @@ const selectNewbbsTable = createSelector(
   }),
 );
 
+const SelectSaveform = createSelector(
+  (state) => state.formTypeParam,
+  (formTypeParam) => ({
+    new: formTypeParam.new,
+    reply: formTypeParam.reply,
+    edit: formTypeParam.edit,
+    diplomacy: formTypeParam.diplomacy,
+  }),
+);
+
 export default function PostForm({
-  onSaveContent,
-  formData,
-  targetNo,
   formType,
   toggleModal,
   modalSetting,
+  MessageNo
 }) {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
-  let formSet = formData[formType];
   const HAKONIWAData = useSelector(selectHAKONIWAData);
   const newbbsTable = useSelector(selectNewbbsTable);
+  const formData = useSelector(SelectSaveform);
   const dispatch = useDispatch();
   const [updateCampBbsTable] = useUpdateCampBbsTableMutation(); // mutationを定義
 
   useEffect(() => {
-    if (formSet && formSet.content) {
-      setIsSubmitDisabled(!formSet.content.trim());
+    if (formData && formData[formType].content) {
+      setIsSubmitDisabled(!formData[formType].content.trim());
     }
-  }, [formSet]);
+  }, [formData[formType]]);
 
   // メッセージ投稿
   const handleSubmit_updateTypeCheck = async (form) => {
@@ -135,6 +146,7 @@ export default function PostForm({
 
     toggleModal();
     modalSetting(updateType, targetNo);
+    dispatch(formReset({ formType })); // データを更新
 
     return false;
   };
@@ -152,49 +164,46 @@ export default function PostForm({
         }}
       >
         <h1 className="mb-3 text-2xl font-bold">{formHeaderName(formType)}</h1>
-        <input type="hidden" name="targetNo" value={targetNo} hidden />
+        <input type="hidden" name="targetNo" value={MessageNo} hidden />
         <input
           type="hidden"
           name="newNo"
-          value={formType === "edit" ? targetNo : "0"}
+          value={formType === "edit" ? MessageNo : "0"}
           hidden
         />
         <input
           type="text"
           name="title"
-          value={formSet.title}
+          value={formData[formType].title || ''}
           placeholder="タイトル (省略可)"
           className="mb-2 border p-2"
-          onChange={(e) => onSaveContent(e, formType)}
+          onChange={(e) => dispatch(formSave({ formType, formName: e.target.name, formValue: e.target.value }))}
         />
         <input
           type="text"
           name="name"
-          value={formSet.name}
+          value={formData[formType].name || ''}
           placeholder="名前 (省略可)"
           className="mb-2 border p-2"
-          onChange={(e) => onSaveContent(e, formType)}
+          onChange={(e) => dispatch(formSave({ formType, formName: e.target.name, formValue: e.target.value }))}
         />
         <textarea
           name="content"
           placeholder="内容"
           className="mb-2 h-36 border p-2"
-          value={formSet.content}
-          style={{ color: formSet.color }}
-          onChange={(e) => onSaveContent(e, formType)}
+          value={formData[formType].content || ''}
+          style={{ color: formData[formType].color }}
+          onChange={(e) => dispatch(formSave({ formType, formName: e.target.name, formValue: e.target.value }))}
         />
         {formType !== "edit" && <InputMultiImageForm />}
         <div className="flex">
           <div className="">
             <SelectColor
-              onSaveContent={onSaveContent}
-              textColor={formSet.color}
+              textColor={formData[formType].color || ''}
               formType={formType}
             />
             {formType === "diplomacy" && (
               <SelectCamp
-                onSaveContent={onSaveContent}
-                selectedCamp={formSet.targetCampId}
                 formType={formType}
                 HAKONIWAData={HAKONIWAData}
               />
@@ -215,7 +224,7 @@ export default function PostForm({
   );
 }
 
-function SelectColor({ onSaveContent, textColor, formType }) {
+function SelectColor({ textColor, formType }) {
   const colors = [
     { value: "black", label: "黒" },
     { value: "maroon", label: "茶" },
@@ -232,13 +241,14 @@ function SelectColor({ onSaveContent, textColor, formType }) {
     { value: "deeppink", label: "深桃" },
     { value: "violet", label: "薄紫" },
   ];
+  const dispatch = useDispatch();
 
   return (
     <div className="mb-2 flex items-center self-start">
       <div className="mr-3">文字色</div>
       <select
         className="border p-2"
-        onChange={(e) => onSaveContent(e, formType)}
+        onChange={(e) => dispatch(formSave({ formType: formType, formName: e.target.name, formValue: e.target.value }))}
         name="color"
         value={textColor}
       >
@@ -257,17 +267,18 @@ function SelectColor({ onSaveContent, textColor, formType }) {
   );
 }
 
-function SelectCamp({ onSaveContent, selectedCamp, formType, HAKONIWAData }) {
+function SelectCamp({ formType, HAKONIWAData }) {
+  const dispatch = useDispatch();
+
   return (
     <div className="mb-2 flex items-center self-start">
       <div className="mr-3">送信先</div>
       <select
         className="border p-2"
-        onChange={(e) => onSaveContent(e, formType)}
+        onChange={(e) => dispatch(formSave({ formType: formType, formName: e.target.name, formValue: e.target.value }))}
         name="targetCampId"
-        value={selectedCamp}
       >
-        {Object.entries(HAKONIWAData.campNameList).map(
+        {Object.entries(HAKONIWAData.campLists).map(
           ([key, { name, mark }]) =>
             key !== HAKONIWAData.campId && (
               <option key={key} value={key}>
