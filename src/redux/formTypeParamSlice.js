@@ -1,11 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 class FormData {
-    constructor(title, name, content, color) {
+    constructor(title, name, content, color, targetNo) {
         this.title = title;
         this.name = name;
         this.content = content;
         this.color = color;
+        this.targetNo = targetNo;
     }
 
     toObject() {
@@ -14,9 +15,34 @@ class FormData {
             name: this.name,
             content: this.content,
             color: this.color,
+            targetNo: this.targetNo,
         };
     }
 }
+
+// ユーティリティ関数の定義
+const initialize = (state, { formType, targetNo, messageData }) => {
+    if (formType === "reply") {
+        state[formType].title = `Re:[No.${targetNo}]への返信`;
+    } else if (formType === "edit" && state[formType].targetNo !== targetNo) {
+        state[formType] = new FormData(
+            messageData.title,
+            messageData.owner,
+            messageData.content,
+            messageData.contentColor,
+            messageData.No
+        ).toObject();
+    }
+};
+
+const save = (state, { formType, formName, formValue }) => {
+    state[formType][formName] = formValue;
+};
+
+const reset = (state, { formType }) => {
+    state[formType].title = "";
+    state[formType].content = "";
+};
 
 export const formTypeParamSlice = createSlice({
     name: "formTypeParam",
@@ -28,26 +54,13 @@ export const formTypeParamSlice = createSlice({
     },
     reducers: {
         formInitial: (state, action) => {
-            const { formType, targetNo, messageData } = action.payload; // action.payloadから必要な情報を取得
-            if (formType === "reply") {
-                state[formType].title = `Re:[No.${targetNo}]への返信`;
-            } else if (formType === "edit") {
-                state[formType] = new FormData(
-                    messageData.title,
-                    messageData.owner,
-                    messageData.content,
-                    messageData.contentColor
-                ).toObject();
-            }
+            initialize(state, action.payload);
         },
         formSave: (state, action) => {
-            const { formType, formName, formValue } = action.payload; // action.payloadから必要な情報を取得
-            state[formType][formName] = formValue;
+            save(state, action.payload);
         },
         formReset: (state, action) => {
-            const { formType } = action.payload; // action.payloadから必要な情報を取得
-            state[formType].title = "";
-            state[formType].content = "";
+            reset(state, action.payload);
         },
     },
 });
