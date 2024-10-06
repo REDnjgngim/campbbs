@@ -19,9 +19,7 @@ const baseQueryWithReauth = async (args, api, body) => {
     const message = successMessage(args.formType);
     if (result.error) {
         // エラーが発生した場合の処理
-        api.dispatch(
-            showToast({ description: `エラーが発生しました`, success: false })
-        );
+        api.dispatch(showToast({ description: `エラーが発生しました`, success: false }));
     } else {
         api.dispatch(showToast({ description: message, success: true }));
     }
@@ -64,5 +62,4 @@ function successMessage(formType) {
 }
 
 // use + endpointsで設定した名前 + QueryでHooksが作られる
-export const { useGetCampBbsTableQuery, useUpdateCampBbsTableMutation } =
-    campApi;
+export const { useGetCampBbsTableQuery, useUpdateCampBbsTableMutation } = campApi;

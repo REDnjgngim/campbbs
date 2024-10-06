@@ -10,16 +10,7 @@ const DIALOG_MESSAGE = {
 
 function message_newPost(form, HAKONIWAData, formType) {
     const { HislandId, HislandName, HislandTurn, HcampId } = HAKONIWAData;
-    const {
-        newNo,
-        title,
-        name,
-        content,
-        color,
-        targetNo,
-        targetCampId,
-        images,
-    } = form;
+    const { newNo, title, name, content, color, targetNo, targetCampId, images } = form;
 
     if (formType === "diplomacy" && !confirm(DIALOG_MESSAGE.diplomacy)) {
         return false;

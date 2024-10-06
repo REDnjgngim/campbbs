@@ -30,7 +30,7 @@ const initialize = (state, { formType, targetNo, messageData }) => {
             messageData.owner,
             messageData.content,
             messageData.contentColor,
-            messageData.No
+            messageData.No,
         ).toObject();
     }
 };

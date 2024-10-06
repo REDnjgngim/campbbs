@@ -9,17 +9,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { update } from "./redux/bbsTableSlice";
 import { modalToggle } from "./redux/modalWindowSlice";
 import { formReset } from "./redux/formTypeParamSlice";
-import {
-    useGetCampBbsTableQuery,
-    useUpdateCampBbsTableMutation,
-} from "./redux/rtk_query";
+import { useGetCampBbsTableQuery, useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 import { createSelector } from "reselect";
-import {
-    message_newPost,
-    message_edit,
-    message_pin,
-    message_delete,
-} from "./postManager.js";
+import { message_newPost, message_edit, message_pin, message_delete } from "./postManager.js";
 
 const selectHAKONIWAData = createSelector(
     (state) => state.HAKONIWAData,
@@ -31,16 +23,14 @@ const selectHAKONIWAData = createSelector(
         HviewLastTime: HAKONIWAData.viewLastTime,
         HcampLists: HAKONIWAData.campLists,
         HislandTurn: HAKONIWAData.islandTurn,
-    })
+    }),
 );
 
 function App() {
     const [messageField, setMessageField] = useState("読み込み中...");
     const HAKONIWAData = useSelector(selectHAKONIWAData);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
-    const isModalOpen = useSelector(
-        (state) => state.modalWindow.viewType !== "close"
-    );
+    const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const dispatch = useDispatch();
     const { data, isSuccess, refetch } = useGetCampBbsTableQuery(HcampId);
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();

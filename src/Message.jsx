@@ -14,12 +14,11 @@ const selectHAKONIWAData = createSelector(
         HviewLastTime: HAKONIWAData.viewLastTime,
         HcampLists: HAKONIWAData.campLists,
         HislandTurn: HAKONIWAData.islandTurn,
-    })
+    }),
 );
 
 export default function Message({ messageData, indent, isFixed, messageSend }) {
-    const { HislandId, HwritenTurn, HcampId, HviewLastTime, HcampLists } =
-        useSelector(selectHAKONIWAData);
+    const { HislandId, HwritenTurn, HcampId, HviewLastTime, HcampLists } = useSelector(selectHAKONIWAData);
     const {
         No,
         title,
@@ -48,9 +47,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
         return (
             <div className="m-1 flex border-b border-gray-300 p-1 text-left">
-                <div className="mb-0.5 shrink-0 border-r border-gray-300 pr-2">
-                    No.{No}
-                </div>
+                <div className="mb-0.5 shrink-0 border-r border-gray-300 pr-2">No.{No}</div>
                 <div className="grow pl-2 font-bold">
                     {title} {writenTime > HviewLastTime && newIcon}
                 </div>
@@ -59,10 +56,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     };
 
     const Muser = () => {
-        let writenUser =
-            owner === ""
-                ? `投稿者: ${islandName}`
-                : `投稿者: ${owner}@${islandName}`;
+        let writenUser = owner === "" ? `投稿者: ${islandName}` : `投稿者: ${owner}@${islandName}`;
 
         if (isDeletedMessage) {
             // 削除済み
@@ -89,19 +83,13 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                     let { name, mark } = HcampLists[id];
                     targetCampName.push(`${mark}${name}`);
                 });
-                diplomacyCampName =
-                    targetCampName.join("、") +
-                    `に【外交文書】を送信しました。`;
+                diplomacyCampName = targetCampName.join("、") + `に【外交文書】を送信しました。`;
             }
         }
 
         return (
             <div className="m-1 border-b border-gray-300 p-2">
-                {isDiplomacyMessage && (
-                    <p className="mb-1 text-left font-bold">
-                        {diplomacyCampName}
-                    </p>
-                )}
+                {isDiplomacyMessage && <p className="mb-1 text-left font-bold">{diplomacyCampName}</p>}
                 <p className="text-left" style={{ color: contentColor }}>
                     {content}
                 </p>
@@ -117,9 +105,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                     dispatch(
                                         modalToggle({
                                             modalType: "image",
-                                            contentParam:
-                                                URL.createObjectURL(imgURL),
-                                        })
+                                            contentParam: URL.createObjectURL(imgURL),
+                                        }),
                                     )
                                 }
                             />
@@ -145,13 +132,13 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                     formInitial({
                                         formType: "reply",
                                         targetNo: No,
-                                    })
+                                    }),
                                 );
                                 dispatch(
                                     modalToggle({
                                         modalType: "reply",
                                         contentParam: No,
-                                    })
+                                    }),
                                 );
                             }}
                         >
@@ -168,13 +155,13 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                             formType: "edit",
                                             targetNo: No,
                                             messageData,
-                                        })
+                                        }),
                                     );
                                     dispatch(
                                         modalToggle({
                                             modalType: "edit",
                                             contentParam: No,
-                                        })
+                                        }),
                                     );
                                 }}
                             >
@@ -182,9 +169,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                             </button>
                             <button
                                 className="m-0.5 ml-1 whitespace-nowrap rounded border bg-red-600 p-1.5 text-white"
-                                onClick={() =>
-                                    messageSend(messageData, "delete")
-                                }
+                                onClick={() => messageSend(messageData, "delete")}
                             >
                                 削除
                             </button>

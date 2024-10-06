@@ -11,15 +11,13 @@ const SelectSaveform = createSelector(
         reply: formTypeParam.reply,
         edit: formTypeParam.edit,
         diplomacy: formTypeParam.diplomacy,
-    })
+    }),
 );
 
 export default function ModalWindow({ messageSend }) {
     const dispatch = useDispatch();
     const ModalContentType = useSelector((state) => state.modalWindow.viewType);
-    const ModalContentParam = useSelector(
-        (state) => state.modalWindow.contentParam
-    );
+    const ModalContentParam = useSelector((state) => state.modalWindow.contentParam);
     const [modalContent, setModalContent] = useState();
 
     useEffect(() => {
@@ -32,13 +30,7 @@ export default function ModalWindow({ messageSend }) {
             case "image":
                 return <ImageDisplay imgURL={ModalContentParam} />;
             default:
-                return (
-                    <PostForm
-                        formType={ModalContentType}
-                        MessageNo={ModalContentParam}
-                        messageSend={messageSend}
-                    />
-                );
+                return <PostForm formType={ModalContentType} MessageNo={ModalContentParam} messageSend={messageSend} />;
         }
     };
 
@@ -51,9 +43,7 @@ export default function ModalWindow({ messageSend }) {
                 <div className="basis-auto">{modalContent}</div>
                 <div className="ml-auto">
                     <button
-                        onClick={() =>
-                            dispatch(modalToggle({ modalType: "close" }))
-                        }
+                        onClick={() => dispatch(modalToggle({ modalType: "close" }))}
                         className="BATSU relative mt-2"
                     />
                 </div>
@@ -78,15 +68,12 @@ function PostForm({ formType, MessageNo, messageSend }) {
                 formType,
                 formName: name,
                 formValue: value,
-            })
+            }),
         );
     };
 
     return (
-        <div
-            className="max-h-[90vh] basis-full"
-            onClick={(e) => e.stopPropagation()}
-        >
+        <div className="max-h-[90vh] basis-full" onClick={(e) => e.stopPropagation()}>
             <form
                 className="flex max-h-[90vh] w-full grow flex-col overflow-y-auto bg-white p-5"
                 onSubmit={(e) => {
@@ -94,16 +81,9 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     messageSend(e.target, formType);
                 }}
             >
-                <h1 className="mb-3 text-2xl font-bold">
-                    {formHeaderName(formType)}
-                </h1>
+                <h1 className="mb-3 text-2xl font-bold">{formHeaderName(formType)}</h1>
                 <input type="hidden" name="targetNo" value={MessageNo} hidden />
-                <input
-                    type="hidden"
-                    name="newNo"
-                    value={formType === "edit" ? MessageNo : "0"}
-                    hidden
-                />
+                <input type="hidden" name="newNo" value={formType === "edit" ? MessageNo : "0"} hidden />
                 <input
                     type="text"
                     name="title"
@@ -131,10 +111,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
                 {formType !== "edit" && <InputMultiImageForm />}
                 <div className="flex">
                     <div className="">
-                        <SelectColor
-                            textColor={formData[formType].color || ""}
-                            handleInputChange={handleInputChange}
-                        />
+                        <SelectColor textColor={formData[formType].color || ""} handleInputChange={handleInputChange} />
                         {formType === "diplomacy" && <SelectCamp />}
                     </div>
                     <div className="ml-auto mt-auto">
@@ -173,19 +150,9 @@ function SelectColor({ textColor, handleInputChange }) {
     return (
         <div className="mb-2 flex items-center self-start">
             <div className="mr-3">文字色</div>
-            <select
-                className="border p-2"
-                onChange={handleInputChange}
-                name="color"
-                value={textColor}
-            >
+            <select className="border p-2" onChange={handleInputChange} name="color" value={textColor}>
                 {colors.map((color) => (
-                    <option
-                        className="font-bold"
-                        key={color.value}
-                        value={color.value}
-                        style={{ color: color.value }}
-                    >
+                    <option className="font-bold" key={color.value} value={color.value} style={{ color: color.value }}>
                         {color.label}
                     </option>
                 ))}
@@ -209,7 +176,7 @@ function SelectCamp() {
                                 {mark}
                                 {name}
                             </option>
-                        )
+                        ),
                 )}
             </select>
         </div>
@@ -219,11 +186,7 @@ function SelectCamp() {
 function ImageDisplay({ imgURL }) {
     return (
         <div className="basis-auto">
-            <img
-                className="mx-auto h-auto max-h-[90vh] w-fit"
-                src={imgURL}
-                alt={`画像`}
-            />
+            <img className="mx-auto h-auto max-h-[90vh] w-fit" src={imgURL} alt={`画像`} />
         </div>
     );
 }
@@ -239,12 +202,8 @@ function InputMultiImageForm() {
     const handleChange = (e) => {
         if (!e.target.files) return;
         if (!inputRef.current?.files) return;
-        const newFileArray = [
-            ...selectedFileArray,
-            ...Array.from(e.target.files),
-        ].filter(
-            (file, index, self) =>
-                self.findIndex((f) => f.name === file.name) === index // 重複を削除
+        const newFileArray = [...selectedFileArray, ...Array.from(e.target.files)].filter(
+            (file, index, self) => self.findIndex((f) => f.name === file.name) === index, // 重複を削除
         );
         const dt = new DataTransfer();
         newFileArray.forEach((file) => dt.items.add(file));
@@ -255,9 +214,7 @@ function InputMultiImageForm() {
     const handleDelete = (index) => {
         if (!inputRef.current?.files) return;
         const dt = new DataTransfer();
-        selectedFileArray.forEach(
-            (file, i) => i !== index && dt.items.add(file)
-        );
+        selectedFileArray.forEach((file, i) => i !== index && dt.items.add(file));
         inputRef.current.files = dt.files; // input内のFileListを更新
         setInputFiles(dt.files); // Reactのstateを更新
     };
@@ -285,9 +242,7 @@ function InputMultiImageForm() {
                                 onClick={() => handleDelete(index)}
                             />
                             <button className="BATSU pointer-events-none absolute right-1 top-0" />
-                            <p className="mb-2 w-32 overflow-hidden text-ellipsis">
-                                {file.name}
-                            </p>
+                            <p className="mb-2 w-32 overflow-hidden text-ellipsis">{file.name}</p>
                         </div>
                     </div>
                 ))}

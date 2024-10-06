@@ -8,7 +8,7 @@ const selectNewbbsTable = createSelector(
     (bbsTable) => ({
         log: bbsTable.log,
         timeline: bbsTable.timeline,
-    })
+    }),
 );
 
 export default function BbsMessages({ messageSend }) {
@@ -30,9 +30,7 @@ export default function BbsMessages({ messageSend }) {
 
     const addMessagesRecursively = (timelineNode, depth = 0) => {
         Object.keys(timelineNode).forEach((key) => {
-            const messageData = newbbsTable.log.find(
-                (message) => message.No === key
-            );
+            const messageData = newbbsTable.log.find((message) => message.No === key);
             if (messageData) {
                 const message = renderMessage(messageData, depth, 0);
                 if (depth === 0) {
@@ -50,18 +48,12 @@ export default function BbsMessages({ messageSend }) {
     addMessagesRecursively(newbbsTable.timeline);
 
     MessageArray.sort((a, b) => {
-        const maxWritenTimeA = Math.max(
-            ...a.map((message) => message.props.messageData.writenTime)
-        );
-        const maxWritenTimeB = Math.max(
-            ...b.map((message) => message.props.messageData.writenTime)
-        );
+        const maxWritenTimeA = Math.max(...a.map((message) => message.props.messageData.writenTime));
+        const maxWritenTimeB = Math.max(...b.map((message) => message.props.messageData.writenTime));
         return maxWritenTimeB - maxWritenTimeA;
     });
 
-    const importMessage = newbbsTable.log.find(
-        (message) => message.important === true
-    );
+    const importMessage = newbbsTable.log.find((message) => message.important === true);
     if (importMessage) {
         MessageArray.unshift([renderMessage(importMessage, 0, 1)]);
     }

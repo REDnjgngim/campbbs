@@ -15,6 +15,5 @@ export const store = configureStore({
         modalWindow: modalWindowReducer,
         [campApi.reducerPath]: campApi.reducer,
     },
-    middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(campApi.middleware),
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(campApi.middleware),
 });
