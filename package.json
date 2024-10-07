@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint src/**/*",
-    "fmt": "prettier --write **/*.{css,scss,json,md,js,jsx}",
+    "fmt": "prettier --write **/*.{css,scss,js,jsx}",
     "preview": "vite preview"
   },
   "dependencies": {
