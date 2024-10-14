@@ -9,6 +9,7 @@ use utf8;
     use base qw(HTTP::Server::Simple::CGI);
     use JSON;
     use Data::Dumper;
+    use File::Basename;
 
     sub handle_request {
         my ($self, $cgi) = @_;
@@ -27,9 +28,7 @@ use utf8;
             "POST" => \&post_api
         );
 
-        if($cgi->path_info() eq "/testResponse"){
-            print "{\"message\": \"response OK\"}";
-        } elsif (exists $routes{$method}) {
+        if (exists $routes{$method}) {
             my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
             $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
         } else {
@@ -51,8 +50,8 @@ use utf8;
 
                 my $log_json = decode_json($log);
                 my $timeline_json = decode_json($timeline);
-                $camp_log = encode_json($log_json->{"$campNo"});
-                $camp_timeline = encode_json($timeline_json->{"$campNo"});
+                $camp_log = encode_json($log_json->{$campNo});
+                $camp_timeline = encode_json($timeline_json->{$campNo});
             }
 
             # 出力
@@ -69,7 +68,7 @@ use utf8;
                 "pin" => \&post_editMessage,
                 "delete" => \&post_deleteMessage,
             );
-            my $newMessage =  $cgi->param('POSTDATA');
+            my $newMessage =  $cgi->param("newMessage");
             my $newMessage_json = decode_json($newMessage);
 
             my ($log, $timeline);
@@ -82,7 +81,9 @@ use utf8;
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json);
+                # imageFileCheck();
+
+                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
@@ -96,12 +97,15 @@ use utf8;
         }
 
         sub post_newMessage{
-            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
+            my $imagePATH = "../public/campBbsData/image";
+
             # 陣営ごとに処理
             foreach my $campId (@campIds){
                 my $newMessageForCamp = { %$newMessage_json };
+                my $nowTime = int(time());
                 # log追加処理
                 my $newNo = 0;
                 foreach my $message (@{$bbsTable_log->{$campId}}) {
@@ -111,7 +115,25 @@ use utf8;
                 }
                 $newNo++; # 新規番号
                 $newMessageForCamp->{"No"} = "$newNo";
-                $newMessageForCamp->{"writenTime"} = int(time());
+                $newMessageForCamp->{"writenTime"} = $nowTime;
+
+                # 画像ファイル処理
+                my @imageFilehandles = $cgi->upload("images");
+                foreach my $index (0..$#imageFilehandles) {
+                    my $imageFilehandle = $imageFilehandles[$index];
+                    if (defined $imageFilehandle) {
+                        # 拡張子だけ取得
+                        $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
+                        my $extension = $1;
+
+                        my $fileName = "${nowTime}${campId}" . ($index + 1) . ".$extension";
+                        my $filepath = "$imagePATH/$fileName";
+                        write_file_image($filepath, $imageFilehandle);
+                        push(@{$newMessageForCamp->{"images"}}, $fileName);
+                    }
+                    last if($index == 1); # 画像は2枚まで
+                }
+
                 # log追加
                 push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
 
@@ -137,7 +159,7 @@ use utf8;
             my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
             if($index > -1){
                 # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
-                if($newMessage_json->{'important'}){
+                if($newMessage_json->{"important"}){
                     my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
                     $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
                 }
@@ -237,6 +259,21 @@ use utf8;
             flock($fh, 2); # 排他ロック
 
             print $fh $content;
+
+            flock($fh, 8); # ロック解除
+            close $fh;
+        }
+
+        sub write_file_image {
+            my ($filepath, $imageFilehandle) = @_;
+
+            open my $fh, '>', $filepath or die $!;
+            flock($fh, 2); # 排他ロック
+            binmode $fh;
+
+            while (my $chunk = <$imageFilehandle>) {
+                print $fh $chunk;
+            }
 
             flock($fh, 8); # ロック解除
             close $fh;

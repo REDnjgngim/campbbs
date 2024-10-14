@@ -37,7 +37,7 @@ function message_newPost(form, HAKONIWAData, formType) {
         writenCampId: HcampId,
         targetCampIds: targetCampIds,
         important: false,
-        images: validImages,
+        images: validImages, // formDataに格納するための一時保持
     };
 }
 
