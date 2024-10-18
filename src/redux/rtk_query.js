@@ -2,7 +2,6 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { showToast } from "./toastSlice"; // トーストメッセージを表示するためのアクション
 
 const baseHeaders = (headers) => {
-    headers.set("Content-Type", "application/json");
     headers.set("Access-Control-Request-Headers", "origin, x-requested-with");
     return headers;
 };
@@ -36,10 +35,10 @@ export const campApi = createApi({
             }),
         }),
         updateCampBbsTable: builder.mutation({
-            query: ({ campId, subMethod, newMessage, formType }) => ({
+            query: ({ campId, subMethod, formData, formType }) => ({
                 method: "post",
                 url: `/api/camps/${campId}/${subMethod}`,
-                body: newMessage, // dataをbodyに変更
+                body: formData, // dataをbodyに変更
                 formType,
             }),
         }),

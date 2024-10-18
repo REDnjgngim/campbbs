@@ -66,11 +66,18 @@ function App() {
             return false;
         }
 
+        const formData = new FormData();
+        for (let i = 0; i < createMessage.images.length; i++) {
+            formData.append("images", createMessage.images[i]);
+        }
+        createMessage.images = [];
+        formData.append("newMessage", JSON.stringify(createMessage));
+
         // API通信
         const result = await updateCampBbsTable({
             campId: HcampId,
             subMethod: updateType,
-            newMessage: createMessage,
+            formData,
             formType,
         });
         const { data } = result;
