@@ -27,7 +27,7 @@ const selectHAKONIWAData = createSelector(
 );
 
 function App() {
-    const [messageField, setMessageField] = useState("読み込み中...");
+    const [messageField, setMessageField] = useState(<div className="LOADING-CIRCLE"></div>);
     const HAKONIWAData = useSelector(selectHAKONIWAData);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
     const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");

@@ -75,6 +75,24 @@ html {
     transform-origin: top right;
 }
 
+.LOADING-CIRCLE {
+    width: 32px;
+    height: 32px;
+    margin: 20px auto;
+    border: 4px rgba(0, 0, 0, 0.25) solid;
+    border-top: 4px black solid;
+    border-radius: 50%;
+    animation: spCircRot 2s infinite ease;
+}
+@keyframes spCircRot {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(359deg);
+    }
+}
+
 /* 縦スマホ */
 @media (max-aspect-ratio: 9 / 16) {
     .App div {

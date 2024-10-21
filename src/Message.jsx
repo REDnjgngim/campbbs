@@ -36,6 +36,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     } = messageData;
 
     const dispatch = useDispatch();
+    const buttonClass_anime = "transition duration-100 hover:brightness-125 active:brightness-75";
 
     const isDeletedMessage = HwritenTurn === -1;
     const isOwnMessage = islandId === HislandId;
@@ -43,7 +44,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const isDiplomacyMessage = targetCampIds.length > 0;
 
     const Mtitle = () => {
-        const newIcon = <span className="ml-1 text-sm text-red-500">New!</span>;
+        const newIcon = <span className="ml-1 text-sm text-red-500 animate-pulse">New!</span>;
 
         return (
             <div className="m-1 flex border-b border-gray-300 p-1 text-left">
@@ -126,7 +127,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                 <div className="m-0.5 flex items-end pb-1">
                     {!isFixed && (
                         <button
-                            className="m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white"
+                            className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white ${buttonClass_anime}`}
                             onClick={() => {
                                 dispatch(
                                     formInitial({
@@ -148,7 +149,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                     {isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
-                                className="m-0.5 ml-1 whitespace-nowrap rounded border bg-white p-1.5"
+                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-white p-1.5 ${buttonClass_anime}`}
                                 onClick={() => {
                                     dispatch(
                                         formInitial({
@@ -168,7 +169,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                 編集
                             </button>
                             <button
-                                className="m-0.5 ml-1 whitespace-nowrap rounded border bg-red-600 p-1.5 text-white"
+                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-red-600 p-1.5 text-white ${buttonClass_anime}`}
                                 onClick={() => messageSend(messageData, "delete")}
                             >
                                 削除
@@ -176,7 +177,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                         </>
                     )}
                     <button
-                        className="m-0.5 whitespace-nowrap rounded-full border border-dashed border-slate-500 bg-white p-1.5"
+                        className={`m-0.5 whitespace-nowrap rounded-full border border-dashed border-slate-500 bg-white p-1.5 ${buttonClass_anime}`}
                         onClick={() => messageSend(messageData, "pin")}
                     >
                         {isImportant && "解除"}

@@ -4,23 +4,27 @@ import { modalToggle } from "./redux/modalWindowSlice";
 
 export default function FixedFooterButtons({ bbsTable_reload }) {
     const dispatch = useDispatch();
+    const buttonClass_anime = "transition duration-100 hover:brightness-125 active:brightness-75";
 
     return (
         <>
             <div className="fixed bottom-4 left-4">
-                <button className="mb-3 rounded-full border bg-white p-4 shadow-md" onClick={bbsTable_reload}>
+                <button
+                    className={`mb-3 rounded-full border bg-white p-4 shadow-md ${buttonClass_anime}`}
+                    onClick={bbsTable_reload}
+                >
                     <span className="RELOAD text-3xl"></span>
                 </button>
             </div>
             <div className="fixed bottom-4 right-4 mb-2">
                 <button
-                    className="m-2 rounded border-none bg-blue-600 p-5 text-white shadow-md"
+                    className={`m-2 rounded border-none bg-blue-600 p-5 text-white shadow-md ${buttonClass_anime}`}
                     onClick={() => dispatch(modalToggle({ modalType: "new", contentParam: "0" }))}
                 >
                     新規投稿
                 </button>
                 <button
-                    className="m-2 rounded border-none bg-blue-600 p-5 text-white shadow-md"
+                    className={`m-2 rounded border-none bg-blue-600 p-5 text-white shadow-md ${buttonClass_anime}`}
                     onClick={() =>
                         dispatch(
                             modalToggle({
