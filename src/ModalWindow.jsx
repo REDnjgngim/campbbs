@@ -19,11 +19,19 @@ export default function ModalWindow({ messageSend }) {
     const ModalContentType = useSelector((state) => state.modalWindow.viewType);
     const ModalContentParam = useSelector((state) => state.modalWindow.contentParam);
     const [modalContent, setModalContent] = useState();
+    const [isOpen_animeClass, setIsOpen_animeClass] = useState(false);
+    const buttonClass_anime =
+        "transition duration-100 hover:brightness-125 hover:scale-105 active:brightness-75 active:scale-95";
 
     useEffect(() => {
         setModalContent(getModalContent());
-        console.log(ModalContentType);
+        setIsOpen_animeClass(true);
     }, [ModalContentType]);
+
+    const handleClose = () => {
+        setIsOpen_animeClass(false);
+        setTimeout(() => dispatch(modalToggle({ modalType: "close" })), 200); // アニメーションが終わるまで待ってから閉じる
+    };
 
     const getModalContent = () => {
         switch (ModalContentType) {
@@ -36,16 +44,13 @@ export default function ModalWindow({ messageSend }) {
 
     return (
         <div
-            onClick={() => dispatch(modalToggle({ modalType: "close" }))}
-            className="fixed inset-0 flex items-center justify-center bg-black/50"
+            onClick={handleClose}
+            className={`fixed inset-0 flex items-center justify-center bg-black/50 transition duration-200 ${isOpen_animeClass ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
         >
             <div className="relative flex w-full max-w-4xl flex-col justify-center overflow-y-auto rounded p-5">
                 <div className="basis-auto">{modalContent}</div>
                 <div className="ml-auto">
-                    <button
-                        onClick={() => dispatch(modalToggle({ modalType: "close" }))}
-                        className="BATSU relative mt-2"
-                    />
+                    <button className={`BATSU relative mt-2 ${buttonClass_anime}`} />
                 </div>
             </div>
         </div>
@@ -117,7 +122,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     <div className="ml-auto mt-auto">
                         <button
                             type="submit"
-                            className={`m-2 rounded border-none px-8 py-4 text-xl font-bold ${isSubmitDisabled ? "bg-blue-800 text-slate-400" : "bg-blue-600 text-white"}`}
+                            className={`m-2 rounded border-none bg-blue-600 px-8 py-4 text-xl font-bold text-white transition duration-100 ${isSubmitDisabled ? "brightness-50" : "hover:scale-105 hover:brightness-125 active:scale-95 active:brightness-75"}`}
                             disabled={isSubmitDisabled}
                         >
                             {formButtonName(formType)}
@@ -238,10 +243,10 @@ function InputMultiImageForm() {
                                 key={index}
                                 src={URL.createObjectURL(file)}
                                 alt={file.name}
-                                className="m-2 size-32 cursor-pointer object-cover hover:brightness-90"
+                                className="m-2 size-32 cursor-pointer object-cover transition duration-100 hover:brightness-75 active:brightness-50"
                                 onClick={() => handleDelete(index)}
                             />
-                            <button className="BATSU pointer-events-none absolute right-1 top-0" />
+                            <button className="BATSU pointer-events-none absolute right-2 top-1 brightness-110" />
                             <p className="mb-2 w-32 overflow-hidden text-ellipsis">{file.name}</p>
                         </div>
                     </div>
