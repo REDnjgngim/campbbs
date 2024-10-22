@@ -36,7 +36,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     } = messageData;
 
     const dispatch = useDispatch();
-    const buttonClass_anime = "transition duration-100 hover:brightness-125 active:brightness-75";
+    const buttonClass_anime =
+        "transition duration-100 hover:brightness-125 hover:scale-105 active:brightness-75 active:scale-95";
 
     const isDeletedMessage = HwritenTurn === -1;
     const isOwnMessage = islandId === HislandId;
@@ -44,7 +45,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const isDiplomacyMessage = targetCampIds.length > 0;
 
     const Mtitle = () => {
-        const newIcon = <span className="ml-1 text-sm text-red-500 animate-pulse">New!</span>;
+        const newIcon = <span className="ml-1 animate-pulse text-sm text-red-500">New!</span>;
 
         return (
             <div className="m-1 flex border-b border-gray-300 p-1 text-left">
@@ -149,7 +150,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                     {isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
-                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-white p-1.5 ${buttonClass_anime}`}
+                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-green-600 p-1.5 text-white ${buttonClass_anime}`}
                                 onClick={() => {
                                     dispatch(
                                         formInitial({
