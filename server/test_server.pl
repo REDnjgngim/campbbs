@@ -9,6 +9,10 @@ use utf8;
     use base qw(HTTP::Server::Simple::CGI);
     use JSON;
     use Data::Dumper;
+    use File::Basename;
+    use File::Spec;
+    use File::Copy;
+    use File::Temp qw/ tempfile /;
 
     sub handle_request {
         my ($self, $cgi) = @_;
@@ -27,9 +31,7 @@ use utf8;
             "POST" => \&post_api
         );
 
-        if($cgi->path_info() eq "/testResponse"){
-            print "{\"message\": \"response OK\"}";
-        } elsif (exists $routes{$method}) {
+        if (exists $routes{$method}) {
             my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
             $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
         } else {
@@ -51,8 +53,8 @@ use utf8;
 
                 my $log_json = decode_json($log);
                 my $timeline_json = decode_json($timeline);
-                $camp_log = encode_json($log_json->{"$campNo"});
-                $camp_timeline = encode_json($timeline_json->{"$campNo"});
+                $camp_log = encode_json($log_json->{$campNo});
+                $camp_timeline = encode_json($timeline_json->{$campNo});
             }
 
             # 出力
@@ -69,7 +71,7 @@ use utf8;
                 "pin" => \&post_editMessage,
                 "delete" => \&post_deleteMessage,
             );
-            my $newMessage =  $cgi->param('POSTDATA');
+            my $newMessage =  $cgi->param("newMessage");
             my $newMessage_json = decode_json($newMessage);
 
             my ($log, $timeline);
@@ -82,13 +84,13 @@ use utf8;
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json);
+                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                # write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
-                # write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
+                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
+                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
             }
 
             # 出力
@@ -96,9 +98,11 @@ use utf8;
         }
 
         sub post_newMessage{
-            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
+            my $imagePATH = "../public/campBbsData/image";
+
             # 陣営ごとに処理
             foreach my $campId (@campIds){
                 my $newMessageForCamp = { %$newMessage_json };
@@ -112,6 +116,23 @@ use utf8;
                 $newNo++; # 新規番号
                 $newMessageForCamp->{"No"} = "$newNo";
                 $newMessageForCamp->{"writenTime"} = int(time());
+
+                # 画像ファイル処理
+                my @imageFilehandles = $cgi->upload("images");
+                foreach my $index (0..$#imageFilehandles) {
+                    my $imageFilehandle = $imageFilehandles[$index];
+                    if (defined $imageFilehandle) {
+                        # 拡張子だけ取得
+                        $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
+                        my $extension = $1;
+                        my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
+                        my $fileName = "${randomString}.${extension}";
+                        uploadImage_regulation($imageFilehandle, $fileName);
+                        push(@{$newMessageForCamp->{"images"}}, $fileName);
+                    }
+                    last if($index == 1); # 画像は2枚まで
+                }
+
                 # log追加
                 push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
 
@@ -137,7 +158,7 @@ use utf8;
             my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
             if($index > -1){
                 # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
-                if($newMessage_json->{'important'}){
+                if($newMessage_json->{"important"}){
                     my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
                     $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
                 }
@@ -240,6 +261,78 @@ use utf8;
 
             flock($fh, 8); # ロック解除
             close $fh;
+        }
+
+        sub write_file_image {
+            my ($filepath, $imageFilehandle) = @_;
+
+            open my $fh, '>', $filepath or die $!;
+            flock($fh, 2); # 排他ロック
+            binmode $fh;
+
+            while (my $chunk = <$imageFilehandle>) {
+                print $fh $chunk;
+            }
+
+            flock($fh, 8); # ロック解除
+            close $fh;
+        }
+
+        sub uploadImage_regulation {
+            my ($imageFilehandle, $upload_fileName) = @_;
+            my $imagePATH = "../public/campBbsData/image";
+            my $full_path = "$imagePATH/$upload_fileName";
+            my $ImageMagickPATH = "/usr/local/bin/convert";
+            my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
+
+            my ($tmp_fh, $tmp_filename) = tempfile();
+            binmode $tmp_fh;  # 一時ファイルをバイナリモードで開く
+
+            # ファイルハンドルから一時ファイルに書き込み
+            my $file_size = 0;
+            while (my $chunk = read($imageFilehandle, my $buffer, 8192)) {
+                $file_size += length($buffer);
+                if ($file_size > $MAX_SIZE_MB) {
+                    close $tmp_fh;
+                    unlink $tmp_filename;
+                    die "image size over\n";
+                }
+                print $tmp_fh $buffer;
+            }
+            close $tmp_fh;
+
+            # 画像サイズの取得（画像かどうかの判別）
+            unless (`"$ImageMagickPATH" identify -format "%wx%h" $tmp_filename`) {
+                unlink $tmp_filename;
+                die "not image\n";
+            }
+
+            # 拡張子とMIMEタイプの検証
+            my $mime_type = `"$ImageMagickPATH" identify -format "%m" $tmp_filename`;
+            chomp $mime_type;
+            unless ($mime_type =~ /^(JPG|JPEG|PNG|GIF)$/) {
+                unlink $tmp_filename;
+                die "not supported mimetype: $mime_type\n";
+            }
+
+            # ImageMagickコマンドセット
+            my $processed_tmp_filename = "$tmp_filename-processed";
+            my $magick_cmd = "\"$ImageMagickPATH\" $tmp_filename";
+            $magick_cmd .= " +repage -auto-orient +repage";  # 画像の回転を補正
+            $magick_cmd .= " -colorspace sRGB";  # sRGBに変換
+            $magick_cmd .= " -strip";  # メタデータを削除
+            $magick_cmd .= " $mime_type:\"$processed_tmp_filename\"";  # 一時ファイルに出力
+
+            system($magick_cmd);
+
+            if ($? == 0) {
+                move($processed_tmp_filename, $full_path) or die "Failed to move processed file: $!";
+            } else {
+                die "ImageMagick command failed: $!";
+            }
+
+            # 一時ファイルを削除
+            unlink $tmp_filename;
         }
     }
 }

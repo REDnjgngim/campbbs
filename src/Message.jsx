@@ -74,6 +74,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
     const Mcontent = () => {
         let diplomacyCampName = "";
+        const imgPATH = "../public/campBbsData/image/";
 
         if (isDiplomacyMessage) {
             if (writenCampId !== HcampId) {
@@ -100,14 +101,14 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                         images.map((imgURL, index) => (
                             <img
                                 key={index}
-                                src={URL.createObjectURL(imgURL)} // 仮置き
+                                src={imgPATH + imgURL} // 仮置き
                                 alt={`画像 ${index + 1}`}
                                 className="mr-2 mt-2 size-24 max-h-24 max-w-24 cursor-pointer border object-cover"
                                 onClick={() =>
                                     dispatch(
                                         modalToggle({
                                             modalType: "image",
-                                            contentParam: URL.createObjectURL(imgURL),
+                                            contentParam: imgPATH + imgURL,
                                         }),
                                     )
                                 }
