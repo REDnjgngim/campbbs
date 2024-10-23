@@ -7,8 +7,11 @@
         our @EXPORT_OK = qw(validate_image_integrity);
 
         # 受付可能な画像形式の定義
-        # nameはImageMagickの画像形式名と一致している必要がある(ImageMagickの画像形式名は convert -list format で確認できる)
-        our %ACCEPTABLE_FORMATS = (
+        # nameとextensionsは小文字に正規化され、ケースインセンシティブで処理される
+        # nameはImageMagickの画像形式名と一致(ケースインセンシティブ)している必要がある
+        # ImageMagickの画像形式名は convert -list format で確認できる
+        our %ACCEPTABLE_FORMATS = sub {
+            my %acceptable_format = (
             gif => {
                 name                   => 'gif',
                 extensions             => [qw(gif)],
@@ -43,6 +46,19 @@
                 ],
             },
         );
+
+            # 正規化
+            foreach my $key ( keys %acceptable_format ) {
+                my $format = $acceptable_format{$key};
+                $format->{name} = lc $format->{name};
+                my %unique_extensions = ();
+                map { $unique_extensions{ lc $_ } = 1 }
+                  @{ $format->{extensions} };
+                $format->{extensions} = [ keys %unique_extensions ];
+            }
+            return %acceptable_format;
+          }
+          ->();
 
         # すべての受付可能拡張子の配列
         # example: qw(ext1 ext2 ext3)
@@ -89,7 +105,7 @@
             my ($file_path) = @_;
             croak 'argument $file_path must be defined.' if not defined $file_path;
             croak "${file_path} does not exist."         if not -f $file_path;
-            my $extension = _get_extension_from_file_path($file_path);
+            my $extension = lc _get_extension_from_file_path($file_path);
 
             # ImageMagickに読み込ませても問題のない画像か検証する
             if ($extension !~ $ACCEPTABLE_EXTENSIONS_CHECKER_REGEX) {
