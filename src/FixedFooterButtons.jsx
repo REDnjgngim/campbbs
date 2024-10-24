@@ -1,9 +1,12 @@
 import React from "react";
 import { useDispatch } from "react-redux";
+import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 import { modalToggle } from "./redux/modalWindowSlice";
 
-export default function FixedFooterButtons({ bbsTable_reload }) {
+export default function FixedFooterButtons() {
     const dispatch = useDispatch();
+    const { refetch } = useGetCampBbsTableQuery("1");
+
     const buttonClass_anime =
         "transition duration-100 hover:brightness-125 hover:scale-105 active:brightness-75 active:scale-95";
 
@@ -12,7 +15,7 @@ export default function FixedFooterButtons({ bbsTable_reload }) {
             <div className="fixed bottom-4 left-4">
                 <button
                     className={`mb-3 rounded-full border bg-white p-4 shadow-md ${buttonClass_anime}`}
-                    onClick={bbsTable_reload}
+                    onClick={() => refetch()}
                 >
                     <span className="RELOAD text-3xl"></span>
                 </button>
