@@ -34,6 +34,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         writenTurn,
         important,
     } = messageData;
+    const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     const dispatch = useDispatch();
     const buttonClass_anime =
@@ -129,7 +130,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                 <div className="m-0.5 flex items-end pb-1">
                     {!isFixed && (
                         <button
-                            className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white ${buttonClass_anime}`}
+                            className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                            disabled={isLoadingState}
                             onClick={() => {
                                 dispatch(
                                     formInitial({
@@ -151,7 +153,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                     {isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
-                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-green-600 p-1.5 text-white ${buttonClass_anime}`}
+                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-green-600 p-1.5 text-white ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                                disabled={isLoadingState}
                                 onClick={() => {
                                     dispatch(
                                         formInitial({
@@ -171,7 +174,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                 編集
                             </button>
                             <button
-                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-red-600 p-1.5 text-white ${buttonClass_anime}`}
+                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-red-600 p-1.5 text-white ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                                disabled={isLoadingState}
                                 onClick={() => messageSend(messageData, "delete")}
                             >
                                 削除
@@ -179,7 +183,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                         </>
                     )}
                     <button
-                        className={`m-0.5 whitespace-nowrap rounded-full border border-dashed border-slate-500 bg-white p-1.5 ${buttonClass_anime}`}
+                        className={`m-0.5 whitespace-nowrap rounded-full border border-dashed border-slate-500 bg-white p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                        disabled={isLoadingState}
                         onClick={() => messageSend(messageData, "pin")}
                     >
                         {isImportant && "解除"}

@@ -61,6 +61,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
     const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
     const formData = useSelector(SelectSaveform);
     const dispatch = useDispatch();
+    const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     useEffect(() => {
         setIsSubmitDisabled(!formData[formType].content);
@@ -122,8 +123,8 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     <div className="ml-auto mt-auto">
                         <button
                             type="submit"
-                            className={`m-2 rounded border-none bg-blue-600 px-8 py-4 text-xl font-bold text-white transition duration-100 ${isSubmitDisabled ? "brightness-50" : "hover:scale-105 hover:brightness-125 active:scale-95 active:brightness-75"}`}
-                            disabled={isSubmitDisabled}
+                            className={`m-2 rounded border-none bg-blue-600 px-8 py-4 text-xl font-bold text-white transition duration-100 ${isSubmitDisabled || isLoadingState ? "brightness-50" : "hover:scale-105 hover:brightness-125 active:scale-95 active:brightness-75"}`}
+                            disabled={isSubmitDisabled || isLoadingState}
                         >
                             {formButtonName(formType)}
                         </button>

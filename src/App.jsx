@@ -5,8 +5,9 @@ import BbsMessages from "./BbsMessages.jsx";
 import FixedFooterButtons from "./FixedFooterButtons.jsx";
 import ModalWindow from "./ModalWindow";
 import Toast from "./Toast";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
+import { setLoadingState } from "./redux/loadingStateSlice.js";
 import { createSelector } from "reselect";
 import { message_newPost, message_edit, message_pin, message_delete } from "./postManager.js";
 
@@ -24,11 +25,11 @@ const selectHAKONIWAData = createSelector(
 );
 
 function App() {
-    // const [messageField, setMessageField] = useState();
     const HAKONIWAData = useSelector(selectHAKONIWAData);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
     const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
+    const dispatch = useDispatch();
 
     const messageSend = (form, formType) => {
         let updateType = formType;
@@ -54,7 +55,7 @@ function App() {
             return false;
         }
 
-        // setIsButtonDisabled(true);
+        dispatch(setLoadingState(true));
 
         const formData = new FormData();
         formData.append("newMessage", JSON.stringify(createMessage));

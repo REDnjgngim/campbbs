@@ -3,6 +3,7 @@ import { update } from "./bbsTableSlice";
 import { modalToggle } from "./modalWindowSlice";
 import { formReset } from "./formTypeParamSlice";
 import { showToast } from "./toastSlice";
+import { setLoadingState } from "./loadingStateSlice";
 
 const baseHeaders = (headers) => {
     headers.set("Access-Control-Request-Headers", "origin, x-requested-with");
@@ -19,6 +20,7 @@ const baseQuery = fetchBaseQuery({
 const baseQueryWithReauth = async (args, api, body) => {
     let result = await baseQuery(args, api, body);
     const { formType } = args;
+    api.dispatch(setLoadingState(false)); // ボタン制御を解除
     if (result.error) {
         api.dispatch(showToast({ description: `エラーが発生しました`, success: false }));
     } else {

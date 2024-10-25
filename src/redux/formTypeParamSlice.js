@@ -40,8 +40,11 @@ const save = (state, { formType, formName, formValue }) => {
 };
 
 const reset = (state, { formType }) => {
-    state[formType].title = "";
-    state[formType].content = "";
+    if (formType !== undefined) {
+        // getリクエストはformTypeがundefined
+        state[formType].title = "";
+        state[formType].content = "";
+    }
 };
 
 export const formTypeParamSlice = createSlice({
