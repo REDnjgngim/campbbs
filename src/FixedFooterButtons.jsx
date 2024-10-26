@@ -2,7 +2,6 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 import { modalToggle } from "./redux/modalWindowSlice";
-import { setLoadingState } from "./redux/loadingStateSlice";
 
 export default function FixedFooterButtons() {
     const dispatch = useDispatch();
@@ -12,17 +11,12 @@ export default function FixedFooterButtons() {
 
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
-    const handleReload = () => {
-        dispatch(setLoadingState(true));
-        refetch();
-    };
-
     return (
         <>
             <div className="fixed bottom-4 left-4">
                 <button
                     className={`mb-3 rounded-full border bg-white p-4 shadow-md ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
-                    onClick={handleReload}
+                    onClick={() => refetch()}
                     disabled={isLoadingState}
                 >
                     <span className="RELOAD text-3xl"></span>
