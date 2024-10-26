@@ -18,9 +18,9 @@ const baseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithReauth = async (args, api, body) => {
+    const { formType } = args;
     api.dispatch(setLoadingState(true)); // ボタン制御
     let result = await baseQuery(args, api, body);
-    const { formType } = args;
     api.dispatch(setLoadingState(false)); // ボタン制御を解除
     if (result.error) {
         api.dispatch(showToast({ description: `エラーが発生しました`, success: false }));

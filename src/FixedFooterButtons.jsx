@@ -19,7 +19,7 @@ export default function FixedFooterButtons() {
                     onClick={() => refetch()}
                     disabled={isLoadingState}
                 >
-                    <span className="RELOAD text-3xl"></span>
+                    <span className={`block h-8 w-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>
                 </button>
             </div>
             <div className="fixed bottom-4 right-4 mb-2">
