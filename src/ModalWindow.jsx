@@ -20,8 +20,7 @@ export default function ModalWindow({ messageSend }) {
     const ModalContentParam = useSelector((state) => state.modalWindow.contentParam);
     const [modalContent, setModalContent] = useState();
     const [isOpen_animeClass, setIsOpen_animeClass] = useState(false);
-    const buttonClass_anime =
-        "transition duration-100 hover:brightness-125 hover:scale-105 active:brightness-75 active:scale-95";
+    const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
     useEffect(() => {
         setModalContent(getModalContent());
@@ -123,7 +122,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     <div className="ml-auto mt-auto">
                         <button
                             type="submit"
-                            className={`m-2 rounded border-none bg-blue-600 px-8 py-4 text-xl font-bold text-white transition duration-100 ${isSubmitDisabled || isLoadingState ? "brightness-50" : "hover:scale-105 hover:brightness-125 active:scale-95 active:brightness-75"}`}
+                            className={`m-2 rounded border-none bg-blue-600 px-8 py-4 text-xl font-bold text-white transition duration-100 ${isSubmitDisabled || isLoadingState ? "brightness-50" : "hover:brightness-110 active:scale-95 active:brightness-75"}`}
                             disabled={isSubmitDisabled || isLoadingState}
                         >
                             {formButtonName(formType)}

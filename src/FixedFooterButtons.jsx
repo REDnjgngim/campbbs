@@ -10,8 +10,7 @@ export default function FixedFooterButtons() {
     const { refetch } = useGetCampBbsTableQuery(HcampId);
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
-    const buttonClass_anime =
-        "transition duration-100 hover:brightness-125 hover:scale-105 active:brightness-75 active:scale-95";
+    const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
     const handleReload = () => {
         dispatch(setLoadingState(true));

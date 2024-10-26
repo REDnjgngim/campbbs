@@ -37,8 +37,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     const dispatch = useDispatch();
-    const buttonClass_anime =
-        "transition duration-100 hover:brightness-125 hover:scale-105 active:brightness-75 active:scale-95";
+    const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
     const isDeletedMessage = HwritenTurn === -1;
     const isOwnMessage = islandId === HislandId;
