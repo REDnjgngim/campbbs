@@ -1,5 +1,9 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { showToast } from "./toastSlice"; // トーストメッセージを表示するためのアクション
+import { update } from "./bbsTableSlice";
+import { modalToggle } from "./modalWindowSlice";
+import { formReset } from "./formTypeParamSlice";
+import { showToast } from "./toastSlice";
+import { setLoadingState } from "./loadingStateSlice";
 
 const baseHeaders = (headers) => {
     headers.set("Access-Control-Request-Headers", "origin, x-requested-with");
@@ -14,13 +18,17 @@ const baseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithReauth = async (args, api, body) => {
+    const { formType } = args;
+    api.dispatch(setLoadingState(true)); // ボタン制御
     let result = await baseQuery(args, api, body);
-    const message = successMessage(args.formType);
+    api.dispatch(setLoadingState(false)); // ボタン制御を解除
     if (result.error) {
-        // エラーが発生した場合の処理
         api.dispatch(showToast({ description: `エラーが発生しました`, success: false }));
     } else {
-        api.dispatch(showToast({ description: message, success: true }));
+        api.dispatch(showToast({ description: successMessage(formType), success: true }));
+        api.dispatch(update({ newdata: result.data })); // データを更新
+        api.dispatch(formReset({ formType })); // フォームの保持状態をリセット
+        api.dispatch(modalToggle({ modalType: "close", contentParam: "" })); // モーダルウィンドウを閉じる
     }
     return result;
 };

@@ -36,49 +36,29 @@ html {
 }
 
 .RELOAD {
-    display: inline-block;
-    vertical-align: middle;
-    color: #333;
-    line-height: 1;
     position: relative;
-    width: 1em;
-    height: 1em;
-    transform: rotate(45deg);
-}
-
-.RELOAD::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: inherit;
-    height: inherit;
-    border: 0.1em solid currentColor;
+    border: 0.3em solid;
     border-right-color: transparent;
-    border-radius: 50%;
+    border-radius: 100%;
     box-sizing: border-box;
-    transform: rotate(-45deg);
 }
 
-.RELOAD::after {
-    content: "";
+.RELOAD:before {
     position: absolute;
-    top: 0.05em;
-    right: 50%;
-    width: 0.2em;
-    height: 0.2em;
-    border: 0.1em solid currentColor;
-    border-left: 0;
-    border-bottom: 0;
-    box-sizing: content-box;
-    transform: translateX(0.14142em) rotate(45deg);
-    transform-origin: top right;
+    top: 0.4em;
+    right: -0.5em;
+    content: "";
+    height: 50%;
+    border: 0.6em solid transparent;
+    border-top: 0.6em solid;
+    background: transparent;
+    transform-origin: left top;
+    transform: rotate(-45deg);
+    box-sizing: border-box;
 }
 
 .LOADING-CIRCLE {
-    width: 32px;
-    height: 32px;
-    margin: 20px auto;
+    margin: auto;
     border: 4px rgba(0, 0, 0, 0.25) solid;
     border-top: 4px black solid;
     border-radius: 50%;

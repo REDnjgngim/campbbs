@@ -1,7 +1,9 @@
 import React from "react";
+import "./App.css";
 import { useSelector } from "react-redux";
 import Message from "./Message";
 import { createSelector } from "reselect";
+import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 
 const selectNewbbsTable = createSelector(
     (state) => state.bbsTable,
@@ -13,9 +15,33 @@ const selectNewbbsTable = createSelector(
 
 export default function BbsMessages({ messageSend }) {
     const newbbsTable = useSelector(selectNewbbsTable);
-    if (!newbbsTable.log) {
-        return null;
+    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
+    const { error, isLoading } = useGetCampBbsTableQuery(HcampId);
+
+    if (isLoading) {
+        return <div className="LOADING-CIRCLE h-10 w-10"></div>;
     }
+
+    if (error) {
+        return (
+            <div>
+                エラーが発生しました。
+                <br />
+                再度読み込み直してください。
+            </div>
+        );
+    }
+
+    if (newbbsTable.log.length === 0) {
+        return (
+            <div>
+                まだメッセージがありません。
+                <br />
+                新規投稿ボタンからメッセージを投稿しましょう！
+            </div>
+        );
+    }
+
     let MessageArray = [];
 
     const renderMessage = (messageData, depth, isFixed) => (
