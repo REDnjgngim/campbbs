@@ -8,11 +8,13 @@ use utf8;
     package MyWebServer;
     use base qw(HTTP::Server::Simple::CGI);
     use JSON;
+    use lib './lib';
     use Data::Dumper;
     use File::Basename;
     use File::Spec;
     use File::Copy;
     use File::Temp qw/ tempfile /;
+    use CampBbs::Image::IntegrityValidator qw(validate_image_integrity);
 
     sub handle_request {
         my ($self, $cgi) = @_;
@@ -282,7 +284,6 @@ use utf8;
             my ($imageFilehandle, $upload_fileName) = @_;
             my $imagePATH = "../public/campBbsData/image";
             my $full_path = "$imagePATH/$upload_fileName";
-            my $ImageMagickPATH = "/usr/local/bin/convert";
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
 
             my ($tmp_fh, $tmp_filename) = tempfile();
@@ -301,38 +302,34 @@ use utf8;
             }
             close $tmp_fh;
 
-            # 画像サイズの取得（画像かどうかの判別）
-            unless (`"$ImageMagickPATH" identify -format "%wx%h" $tmp_filename`) {
+            if(my $problem = validate_image_integrity($tmp_filename)){
                 unlink $tmp_filename;
-                die "not image\n";
+                die $problem;
             }
 
-            # 拡張子とMIMEタイプの検証
-            my $mime_type = `"$ImageMagickPATH" identify -format "%m" $tmp_filename`;
-            chomp $mime_type;
-            unless ($mime_type =~ /^(JPG|JPEG|PNG|GIF)$/) {
-                unlink $tmp_filename;
-                die "not supported mimetype: $mime_type\n";
-            }
-
-            # ImageMagickコマンドセット
             my $processed_tmp_filename = "$tmp_filename-processed";
-            my $magick_cmd = "\"$ImageMagickPATH\" $tmp_filename";
-            $magick_cmd .= " +repage -auto-orient +repage";  # 画像の回転を補正
-            $magick_cmd .= " -colorspace sRGB";  # sRGBに変換
-            $magick_cmd .= " -strip";  # メタデータを削除
-            $magick_cmd .= " $mime_type:\"$processed_tmp_filename\"";  # 一時ファイルに出力
-
-            system($magick_cmd);
-
-            if ($? == 0) {
-                move($processed_tmp_filename, $full_path) or die "Failed to move processed file: $!";
-            } else {
-                die "ImageMagick command failed: $!";
+            if ( my $error_code = normalize_image($tmp_filename, $processed_tmp_filename) ) {
+                die "ImageMagick command failed with return code: $error_code";
             }
+
+            move($processed_tmp_filename, $full_path) or die "Failed to move processed file: $!";
 
             # 一時ファイルを削除
             unlink $tmp_filename;
+
+            sub normalize_image {
+                my ($tmp_filename, $processed_tmp_filename) = @_;
+                my $ImageMagickPATH = "/usr/local/bin/convert";
+
+                # ImageMagickコマンドセット
+                my $magick_cmd = "\"$ImageMagickPATH\" $tmp_filename";
+                $magick_cmd .= " +repage -auto-orient +repage";  # 画像の回転を補正
+                $magick_cmd .= " -colorspace sRGB";  # sRGBに変換
+                $magick_cmd .= " -strip";  # メタデータを削除
+                $magick_cmd .= " \"$processed_tmp_filename\"";  # 一時ファイルに出力
+
+                return system($magick_cmd);
+            }
         }
     }
 }
