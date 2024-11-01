@@ -142,13 +142,23 @@ use utf8;
                 my $current = $bbsTable_timeline->{$campId};
                 if($newMessageForCamp->{"parentId"}){
                     # 返信は階層を辿る
-                    my $treePath = timeline_Index_Recursively($current, $newMessageForCamp->{"parentId"});
+                    my ($treePath, $index) = ("", -1);
+                    for (my $i = 0; $i <= $#{$current}; $i++) {
+                        $treePath = timeline_Index_Recursively($current->[$i], $newMessageForCamp->{"parentId"});
+                        if($treePath ne ""){
+                            $index = $i;
+                            last;
+                        }
+                    }
                     my @pathArray = split(/,/, $treePath);
+                    $current = $current->[$index]; # 最初のパス
                     for (my $i = 0; $i <= $#pathArray; $i++) {
                         $current = $current->{$pathArray[$i]}; # パスをたどる
                     }
+                    $current->{$newMessageForCamp->{"No"}} = {};
+                }else{
+                    push(@{$current}, {$newMessageForCamp->{"No"} => {}})
                 }
-                $current->{$newMessageForCamp->{"No"}} = {};
             }
 
             return 1;
@@ -200,15 +210,28 @@ use utf8;
 
                 # timeline削除
                 my $current = $bbsTable_timeline->{$campNo};
-                my $treePath = timeline_Index_Recursively($current, $newMessage_json->{"No"});
+                my ($treePath, $index) = ("", -1);
+                for (my $i = 0; $i <= $#{$current}; $i++) {
+                    $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
+                    if($treePath ne ""){
+                        $index = $i;
+                        last;
+                    }
+                }
                 if($treePath ne ""){
                     my @pathArray = split(/,/, $treePath);
+                    $current = $current->[$index]; # 最初のパス
                     for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
                         $current = $current->{$pathArray[$i]}; # パスをたどる
                     }
                     # 子にメッセージがなかったら削除可能
                     if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
                         delete $current->{$newMessage_json->{"No"}};
+
+                        if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
+                            # グループの中身が空
+                            splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
+                        }
                     }
                 }
 

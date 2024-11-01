@@ -59,11 +59,7 @@ export default function BbsMessages({ messageSend }) {
             const messageData = newbbsTable.log.find((message) => message.No === key);
             if (messageData) {
                 const message = renderMessage(messageData, depth, 0);
-                if (depth === 0) {
-                    MessageArray.push([message]);
-                } else {
-                    MessageArray[MessageArray.length - 1].push(message);
-                }
+                MessageArray[MessageArray.length - 1].push(message);
             }
             if (typeof timelineNode[key] === "object") {
                 addMessagesRecursively(timelineNode[key], depth + 1);
@@ -71,7 +67,10 @@ export default function BbsMessages({ messageSend }) {
         });
     };
 
-    addMessagesRecursively(newbbsTable.timeline);
+    newbbsTable.timeline.forEach((group) => {
+        MessageArray.push([]);
+        addMessagesRecursively(group);
+    });
 
     MessageArray.sort((a, b) => {
         const maxWritenTimeA = Math.max(...a.map((message) => message.props.messageData.writenTime));

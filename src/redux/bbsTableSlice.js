@@ -4,7 +4,7 @@ export const bbsTableSlice = createSlice({
     name: "bbsTable",
     initialState: {
         log: [],
-        timeline: {},
+        timeline: [],
     },
     reducers: {
         update: (state, action) => {
