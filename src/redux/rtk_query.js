@@ -14,7 +14,7 @@ const baseQuery = fetchBaseQuery({
     baseUrl: "http://localhost:8080",
     mode: "cors",
     prepareHeaders: baseHeaders,
-    timeout: 1000,
+    timeout: 10000,
 });
 
 const baseQueryWithReauth = async (args, api, body) => {
@@ -37,9 +37,9 @@ export const campApi = createApi({
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({
         getCampBbsTable: builder.query({
-            query: (campId) => ({
+            query: ({ campId, nowIndex, getIndex }) => ({
                 method: "get",
-                url: `/api/camps/${campId}`,
+                url: `/api/camps/${campId}/begin/${nowIndex}/end/${getIndex}`,
             }),
         }),
         updateCampBbsTable: builder.mutation({

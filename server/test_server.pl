@@ -44,7 +44,7 @@ use utf8;
 
         sub get_api {
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
-            my ($campNo) = ($cgi->path_info()) =~ /\/camps\/(\d+)/;  # パスを分割
+            my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
@@ -55,12 +55,44 @@ use utf8;
 
                 my $log_json = decode_json($log);
                 my $timeline_json = decode_json($timeline);
-                $camp_log = encode_json($log_json->{$campNo});
-                $camp_timeline = encode_json($timeline_json->{$campNo});
+
+                # タイムラインを基準に必要なメッセージだけ抽出
+                my $timeline_array = $timeline_json->{$campNo};
+                my $timeline_groups;
+                $end = $#{$timeline_array} if($end == 0);
+                for (my $i = -$begin; $i <= $#{$timeline_array}; $i--) {
+                    push(@{$timeline_groups}, $timeline_array->[$i]); # 指定範囲のグループを抽出
+                    last if($i <= -$end); # 必要なグループ数取ったら終了
+                }
+
+                $camp_timeline = encode_json($timeline_groups);
+
+                # ログはタイムラインのNoを元に抽出
+                my @groupNos;
+                foreach my $timeline_group (@{$timeline_groups}){
+                    push(@groupNos, extract_keys($timeline_group));
+                }
+                my %search_hash = map { $_ => 1 } @groupNos; # 検索対象のNoをキーとしたハッシュを作成
+                my @log_filtered = grep { exists $search_hash{ $_->{"No"} } } @{$log_json->{$campNo}}; # 必要なメッセージだけ抽出
+
+                $camp_log = encode_json(\@log_filtered);
             }
 
             # 出力
             print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
+
+            # 全てのキーを抽出する再帰関数
+            sub extract_keys {
+                my $ref = shift;
+                my @keys;
+                if (ref($ref) eq 'HASH') {
+                    for my $key (keys %$ref) {
+                        push @keys, $key;
+                        push @keys, extract_keys($ref->{$key});
+                    }
+                }
+                return @keys;
+            }
         }
 
         sub post_api {

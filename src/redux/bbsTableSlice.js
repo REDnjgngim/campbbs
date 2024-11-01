@@ -5,6 +5,7 @@ export const bbsTableSlice = createSlice({
     initialState: {
         log: [],
         timeline: [],
+        messageIndex: 10, // 最初に読み込むグループ数
     },
     reducers: {
         update: (state, action) => {

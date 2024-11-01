@@ -10,13 +10,18 @@ const selectNewbbsTable = createSelector(
     (bbsTable) => ({
         log: bbsTable.log,
         timeline: bbsTable.timeline,
+        messageIndex: bbsTable.messageIndex,
     }),
 );
 
 export default function BbsMessages({ messageSend }) {
     const newbbsTable = useSelector(selectNewbbsTable);
     const HcampId = useSelector((state) => state.HAKONIWAData.campId);
-    const { error, isLoading } = useGetCampBbsTableQuery(HcampId);
+    const { error, isLoading } = useGetCampBbsTableQuery({
+        campId: HcampId,
+        nowIndex: 1,
+        getIndex: newbbsTable.messageIndex,
+    });
 
     if (isLoading) {
         return <div className="LOADING-CIRCLE h-10 w-10"></div>;
