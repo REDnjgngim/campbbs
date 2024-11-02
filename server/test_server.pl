@@ -56,25 +56,11 @@ use utf8;
                 my $log_json = decode_json($log);
                 my $timeline_json = decode_json($timeline);
 
-                # タイムラインを基準に必要なメッセージだけ抽出
-                my $timeline_array = $timeline_json->{$campNo};
-                my $timeline_groups;
-                $end = $#{$timeline_array} if($end == 0);
-                for (my $i = -$begin; $i <= $#{$timeline_array}; $i--) {
-                    push(@{$timeline_groups}, $timeline_array->[$i]); # 指定範囲のグループを抽出
-                    last if($i <= -$end); # 必要なグループ数取ったら終了
-                }
-
+                # 指定範囲のタイムラインを抽出
+                my $timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
                 $camp_timeline = encode_json($timeline_groups);
-
-                # ログはタイムラインのNoを元に抽出
-                my @groupNos;
-                foreach my $timeline_group (@{$timeline_groups}){
-                    push(@groupNos, extract_keys($timeline_group));
-                }
-                my %search_hash = map { $_ => 1 } @groupNos; # 検索対象のNoをキーとしたハッシュを作成
-                my @log_filtered = grep { exists $search_hash{ $_->{"No"} } } @{$log_json->{$campNo}}; # 必要なメッセージだけ抽出
-
+                # タイムラインを基準に必要なメッセージを抽出
+                my @log_filtered = log_filtered($log_json->{$campNo}, $timeline_groups);
                 $camp_log = encode_json(\@log_filtered);
             }
 
@@ -97,7 +83,7 @@ use utf8;
 
         sub post_api {
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
-            my ($campNo, $sub_method) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)/;  # パスを分割
+            my ($campNo, $sub_method, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)\/end\/(\d+)/;  # パスを分割
             my %messageHandlers = (
                 "new" => \&post_newMessage,
                 "reply" => \&post_newMessage,
@@ -125,6 +111,14 @@ use utf8;
 
                 write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
                 write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
+
+                # 指定範囲のタイムラインを抽出
+                my $newGroup = $sub_method eq "new" ? 1 : 0; # 新しい書き込みはグループを1つ足す
+                my $timeline_groups = timeline_filtered($bbsTable_timeline->{$campNo}, 1, $end + $newGroup);
+                $camp_timeline = encode_json($timeline_groups);
+                # タイムラインを基準に必要なメッセージを抽出
+                my @log_filtered = log_filtered($bbsTable_log->{$campNo}, $timeline_groups);
+                $camp_log = encode_json(\@log_filtered);
             }
 
             # 出力
@@ -333,6 +327,35 @@ use utf8;
 
             flock($fh, 8); # ロック解除
             close $fh;
+        }
+
+        sub timeline_filtered {
+            my ($timeline_array, $begin, $end) = @_;
+            my $timelined_filtered;
+            $end = $#{$timeline_array} if($end == 0);
+            my $line = scalar(@{$timeline_array});
+
+            # 最新の書き込みから$lineまたは$endまでループして抽出
+            for (my $i = -1; $i >= -$line; $i--) {
+                push(@{$timelined_filtered}, $timeline_array->[$i]);
+                last if($i <= -$end);
+            }
+            return $timelined_filtered;
+        }
+
+        sub log_filtered {
+            my ($log_array, $timeline_groups) = @_;
+            my @groupNos;
+            # タイムラインからメッセージNoだけをまとめる
+            foreach my $timeline_group (@{$timeline_groups}){
+                push(@groupNos, extract_keys($timeline_group));
+            }
+            # 検索対象のNoをキーとしたハッシュを作成
+            my %search_hash = map { $_ => 1 } @groupNos;
+            # 必要なメッセージだけ抽出
+            my @log_filtered = grep { exists $search_hash{ $_->{"No"} } } @{$log_array};
+
+            return @log_filtered;
         }
 
         sub uploadImage_regulation {

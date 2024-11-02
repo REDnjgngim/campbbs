@@ -43,9 +43,9 @@ export const campApi = createApi({
             }),
         }),
         updateCampBbsTable: builder.mutation({
-            query: ({ campId, subMethod, formData, formType }) => ({
+            query: ({ campId, subMethod, formData, formType, getIndex }) => ({
                 method: "post",
-                url: `/api/camps/${campId}/${subMethod}`,
+                url: `/api/camps/${campId}/${subMethod}/end/${getIndex}`,
                 body: formData, // dataをbodyに変更
                 formType,
             }),

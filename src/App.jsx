@@ -6,7 +6,7 @@ import FixedFooterButtons from "./FixedFooterButtons.jsx";
 import ModalWindow from "./ModalWindow";
 import Toast from "./Toast";
 import { useSelector } from "react-redux";
-import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
+import { useUpdateCampBbsTableMutation, useGetCampBbsTableQuery } from "./redux/rtk_query";
 import { createSelector } from "reselect";
 import { message_newPost, message_edit, message_pin, message_delete } from "./postManager.js";
 
@@ -23,11 +23,26 @@ const selectHAKONIWAData = createSelector(
     }),
 );
 
+const selectNewbbsTable = createSelector(
+    (state) => state.bbsTable,
+    (bbsTable) => ({
+        log: bbsTable.log,
+        timeline: bbsTable.timeline,
+        defaultIndex: bbsTable.defaultIndex,
+    }),
+);
+
 function App() {
     const HAKONIWAData = useSelector(selectHAKONIWAData);
+    const newbbsTable = useSelector(selectNewbbsTable);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
     const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
+    const { refetch, error, isLoading } = useGetCampBbsTableQuery({
+        campId: HcampId,
+        nowIndex: 1,
+        getIndex: newbbsTable.defaultIndex,
+    });
 
     const messageSend = (form, formType) => {
         let updateType = formType;
@@ -68,6 +83,7 @@ function App() {
             subMethod: updateType,
             formData,
             formType,
+            getIndex: newbbsTable.timeline.length,
         });
 
         return false;
@@ -78,8 +94,8 @@ function App() {
     return (
         <div className="App">
             <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
-            <BbsMessages messageSend={messageSend} />
-            <FixedFooterButtons />
+            <BbsMessages messageSend={messageSend} error={error} isLoading={isLoading} />
+            <FixedFooterButtons refetch={refetch} />
             {isModalOpen && <ModalWindow messageSend={messageSend} />}
             <Toast />
         </div>

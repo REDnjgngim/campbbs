@@ -3,25 +3,17 @@ import "./App.css";
 import { useSelector } from "react-redux";
 import Message from "./Message";
 import { createSelector } from "reselect";
-import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 
 const selectNewbbsTable = createSelector(
     (state) => state.bbsTable,
     (bbsTable) => ({
         log: bbsTable.log,
         timeline: bbsTable.timeline,
-        messageIndex: bbsTable.messageIndex,
     }),
 );
 
-export default function BbsMessages({ messageSend }) {
+export default function BbsMessages({ messageSend, isLoading, error }) {
     const newbbsTable = useSelector(selectNewbbsTable);
-    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
-    const { error, isLoading } = useGetCampBbsTableQuery({
-        campId: HcampId,
-        nowIndex: 1,
-        getIndex: newbbsTable.messageIndex,
-    });
 
     if (isLoading) {
         return <div className="LOADING-CIRCLE h-10 w-10"></div>;

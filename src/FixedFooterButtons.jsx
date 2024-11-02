@@ -1,16 +1,10 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 import { modalToggle } from "./redux/modalWindowSlice";
 
-export default function FixedFooterButtons() {
+export default function FixedFooterButtons({ refetch }) {
     const dispatch = useDispatch();
-    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
-    const MessageIndex = useSelector((state) => state.bbsTable.messageIndex);
-    const { refetch } = useGetCampBbsTableQuery(
-        { campId: HcampId, nowIndex: 1, getIndex: MessageIndex },
-        { skip: true },
-    );
+
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
