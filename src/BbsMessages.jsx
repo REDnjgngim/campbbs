@@ -16,7 +16,7 @@ export default function BbsMessages({ messageSend, isLoading, error }) {
     const newbbsTable = useSelector(selectNewbbsTable);
 
     if (isLoading) {
-        return <div className="LOADING-CIRCLE h-10 w-10"></div>;
+        return <div className="LOADING-CIRCLE size-10"></div>;
     }
 
     if (error) {

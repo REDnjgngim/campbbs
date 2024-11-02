@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./App.css";
 import "./index.css";
 import BbsMessages from "./BbsMessages.jsx";
@@ -28,7 +28,6 @@ const selectNewbbsTable = createSelector(
     (bbsTable) => ({
         log: bbsTable.log,
         timeline: bbsTable.timeline,
-        defaultIndex: bbsTable.defaultIndex,
     }),
 );
 
@@ -38,10 +37,11 @@ function App() {
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
     const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
+    const [getIndex, setGetIndex] = useState(3); // 初期グループ取得数
     const { refetch, error, isLoading } = useGetCampBbsTableQuery({
         campId: HcampId,
         nowIndex: 1,
-        getIndex: newbbsTable.defaultIndex,
+        getIndex,
     });
 
     const messageSend = (form, formType) => {
@@ -85,6 +85,8 @@ function App() {
             formType,
             getIndex: newbbsTable.timeline.length,
         });
+
+        setGetIndex((prev) => prev + 1);
 
         return false;
     };

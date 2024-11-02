@@ -4,7 +4,6 @@ import { modalToggle } from "./redux/modalWindowSlice";
 
 export default function FixedFooterButtons({ refetch }) {
     const dispatch = useDispatch();
-
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
@@ -17,7 +16,7 @@ export default function FixedFooterButtons({ refetch }) {
                     onClick={() => refetch()}
                     disabled={isLoadingState}
                 >
-                    <span className={`block h-8 w-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>
+                    <span className={`block size-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>
                 </button>
             </div>
             <div className="fixed bottom-4 right-4 mb-2">

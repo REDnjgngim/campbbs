@@ -18,15 +18,21 @@ const baseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithReauth = async (args, api, body) => {
-    const { formType } = args;
+    const { formType, method } = args;
     api.dispatch(setLoadingState(true)); // ボタン制御
     let result = await baseQuery(args, api, body);
     api.dispatch(setLoadingState(false)); // ボタン制御を解除
     if (result.error) {
         api.dispatch(showToast({ description: `エラーが発生しました`, success: false }));
     } else {
-        api.dispatch(showToast({ description: successMessage(formType), success: true }));
-        api.dispatch(update({ newdata: result.data })); // データを更新
+        if (method === "post") {
+            // 投稿したメッセージを出す
+            api.dispatch(showToast({ description: successMessage(formType), success: true }));
+        }
+        if (method === "get") {
+            // getのみテーブルの更新をする
+            api.dispatch(update({ newdata: result.data })); // データを更新
+        }
         api.dispatch(formReset({ formType })); // フォームの保持状態をリセット
         api.dispatch(modalToggle({ modalType: "close", contentParam: "" })); // モーダルウィンドウを閉じる
     }

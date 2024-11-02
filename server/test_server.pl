@@ -57,10 +57,10 @@ use utf8;
                 my $timeline_json = decode_json($timeline);
 
                 # 指定範囲のタイムラインを抽出
-                my $timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
-                $camp_timeline = encode_json($timeline_groups);
+                my @timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
+                $camp_timeline = encode_json(\@timeline_groups);
                 # タイムラインを基準に必要なメッセージを抽出
-                my @log_filtered = log_filtered($log_json->{$campNo}, $timeline_groups);
+                my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_groups);
                 $camp_log = encode_json(\@log_filtered);
             }
 
@@ -111,18 +111,7 @@ use utf8;
 
                 write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
                 write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
-
-                # 指定範囲のタイムラインを抽出
-                my $newGroup = $sub_method eq "new" ? 1 : 0; # 新しい書き込みはグループを1つ足す
-                my $timeline_groups = timeline_filtered($bbsTable_timeline->{$campNo}, 1, $end + $newGroup);
-                $camp_timeline = encode_json($timeline_groups);
-                # タイムラインを基準に必要なメッセージを抽出
-                my @log_filtered = log_filtered($bbsTable_log->{$campNo}, $timeline_groups);
-                $camp_log = encode_json(\@log_filtered);
             }
-
-            # 出力
-            print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
         }
 
         sub post_newMessage{
@@ -331,16 +320,16 @@ use utf8;
 
         sub timeline_filtered {
             my ($timeline_array, $begin, $end) = @_;
-            my $timelined_filtered;
+            my @timelined_filtered;
             $end = $#{$timeline_array} if($end == 0);
             my $line = scalar(@{$timeline_array});
 
             # 最新の書き込みから$lineまたは$endまでループして抽出
             for (my $i = -1; $i >= -$line; $i--) {
-                push(@{$timelined_filtered}, $timeline_array->[$i]);
+                push(@timelined_filtered, $timeline_array->[$i]);
                 last if($i <= -$end);
             }
-            return $timelined_filtered;
+            return @timelined_filtered;
         }
 
         sub log_filtered {
