@@ -83,7 +83,7 @@ use utf8;
 
         sub post_api {
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
-            my ($campNo, $sub_method, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)\/end\/(\d+)/;  # パスを分割
+            my ($campNo, $sub_method) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)/;  # パスを分割
             my %messageHandlers = (
                 "new" => \&post_newMessage,
                 "reply" => \&post_newMessage,
@@ -325,7 +325,7 @@ use utf8;
             my $line = scalar(@{$timeline_array});
 
             # 最新の書き込みから$lineまたは$endまでループして抽出
-            for (my $i = -1; $i >= -$line; $i--) {
+            for (my $i = -$begin; $i >= -$line; $i--) {
                 push(@timelined_filtered, $timeline_array->[$i]);
                 last if($i <= -$end);
             }
