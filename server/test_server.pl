@@ -156,8 +156,9 @@ use utf8;
                 # timeline追加処理
                 my $current = $bbsTable_timeline->{$campId};
                 if($newMessageForCamp->{"parentId"}){
-                    # 返信は階層を辿る
+                    # 返信
                     my ($treePath, $index) = ("", -1);
+                    # 階層を辿る
                     for (my $i = 0; $i <= $#{$current}; $i++) {
                         $treePath = timeline_Index_Recursively($current->[$i], $newMessageForCamp->{"parentId"});
                         if($treePath ne ""){
@@ -171,7 +172,11 @@ use utf8;
                         $current = $current->{$pathArray[$i]}; # パスをたどる
                     }
                     $current->{$newMessageForCamp->{"No"}} = {};
+
+                    # 返信したグループは一番新しくする
+                    push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
                 }else{
+                    # 新規投稿
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}})
                 }
             }

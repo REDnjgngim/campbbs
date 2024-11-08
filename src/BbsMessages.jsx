@@ -117,12 +117,6 @@ export default function BbsMessages({ messageSend }) {
         addMessagesRecursively(group);
     });
 
-    MessageArray.sort((a, b) => {
-        const maxWritenTimeA = Math.max(...a.map((message) => message.props.messageData.writenTime));
-        const maxWritenTimeB = Math.max(...b.map((message) => message.props.messageData.writenTime));
-        return maxWritenTimeB - maxWritenTimeA;
-    });
-
     const importMessage = newbbsTable.log.find((message) => message.important === true);
     if (importMessage) {
         MessageArray.unshift([renderMessage(importMessage, 0, 1)]);
