@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { useSelector } from "react-redux";
 import Message from "./Message";
 import { createSelector } from "reselect";
+import { useGetPageCampBbsTableQuery } from "./redux/rtk_query";
 
 const selectNewbbsTable = createSelector(
     (state) => state.bbsTable,
@@ -12,8 +13,55 @@ const selectNewbbsTable = createSelector(
     }),
 );
 
-export default function BbsMessages({ messageSend, isLoading, error }) {
+export default function BbsMessages({ messageSend }) {
     const newbbsTable = useSelector(selectNewbbsTable);
+
+    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
+    const isGetPageSkip = useRef(false);
+    const isFetchingRef = useRef(false);
+
+    // データ取得クエリ
+    const [addTimelines, setAddTimelines] = useState(0);
+    const GET_TIMELINES = 10; // 1回に読み込む数
+
+    const { data, error, isLoading } = useGetPageCampBbsTableQuery(
+        {
+            campId: HcampId,
+            startIndex: addTimelines + GET_TIMELINES - (GET_TIMELINES - 1), // 初期値は 1
+            endIndex: addTimelines + GET_TIMELINES,
+        },
+        { skip: isGetPageSkip.current },
+    );
+
+    // 無限スクロールでのデータ取得処理
+    useEffect(() => {
+        const handleScroll = () => {
+            if (
+                window.innerHeight + document.documentElement.scrollTop >=
+                    document.documentElement.offsetHeight - 200 &&
+                !isFetchingRef.current
+            ) {
+                isFetchingRef.current = true;
+                setAddTimelines((prevIndex) => prevIndex + GET_TIMELINES);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, [isLoading]);
+
+    useEffect(() => {
+        if (data) {
+            isFetchingRef.current = false;
+
+            if (data.timeline.length === 0) {
+                // 受け取ったデータが空の場合はそれ以上ないので終了
+                isGetPageSkip.current = true;
+            }
+        }
+    }, [data]);
 
     if (isLoading) {
         return <div className="LOADING-CIRCLE size-10"></div>;

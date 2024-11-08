@@ -2,7 +2,7 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { modalToggle } from "./redux/modalWindowSlice";
 
-export default function FixedFooterButtons({ refetch }) {
+export default function FixedFooterButtons({ fetchQuery }) {
     const dispatch = useDispatch();
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
@@ -13,7 +13,7 @@ export default function FixedFooterButtons({ refetch }) {
             <div className="fixed bottom-4 left-4">
                 <button
                     className={`mb-3 rounded-full border bg-white p-4 shadow-md ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
-                    onClick={() => refetch()}
+                    onClick={() => fetchQuery(0)}
                     disabled={isLoadingState}
                 >
                     <span className={`block size-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>

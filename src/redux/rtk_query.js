@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { update } from "./bbsTableSlice";
+import { tableReload, tableAddList } from "./bbsTableSlice";
 import { modalToggle } from "./modalWindowSlice";
 import { formReset } from "./formTypeParamSlice";
 import { showToast } from "./toastSlice";
@@ -18,7 +18,7 @@ const baseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithReauth = async (args, api, body) => {
-    const { formType, method } = args;
+    const { formType, method, isReload } = args;
     api.dispatch(setLoadingState(true)); // ボタン制御
     let result = await baseQuery(args, api, body);
     api.dispatch(setLoadingState(false)); // ボタン制御を解除
@@ -28,13 +28,18 @@ const baseQueryWithReauth = async (args, api, body) => {
         if (method === "post") {
             // 投稿したメッセージを出す
             api.dispatch(showToast({ description: successMessage(formType), success: true }));
+            api.dispatch(formReset({ formType })); // フォームの保持状態をリセット
+            api.dispatch(modalToggle({ modalType: "close", contentParam: "" })); // モーダルウィンドウを閉じる
         }
         if (method === "get") {
-            // getのみテーブルの更新をする
-            api.dispatch(update({ newdata: result.data })); // データを更新
+            if (isReload) {
+                // メッセージを全て再更新
+                api.dispatch(tableReload({ newdata: result.data }));
+            } else {
+                // メッセージを追加読み込み
+                api.dispatch(tableAddList({ newdata: result.data }));
+            }
         }
-        api.dispatch(formReset({ formType })); // フォームの保持状態をリセット
-        api.dispatch(modalToggle({ modalType: "close", contentParam: "" })); // モーダルウィンドウを閉じる
     }
     return result;
 };
@@ -42,16 +47,24 @@ const baseQueryWithReauth = async (args, api, body) => {
 export const campApi = createApi({
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({
-        getCampBbsTable: builder.query({
-            query: ({ campId, nowIndex, getIndex }) => ({
+        getAllCampBbsTable: builder.query({
+            query: ({ campId, endIndex }) => ({
                 method: "get",
-                url: `/api/camps/${campId}/begin/${nowIndex}/end/${getIndex}`,
+                url: `/api/camps/${campId}/begin/1/end/${endIndex}`,
+                isReload: true,
+            }),
+        }),
+        getPageCampBbsTable: builder.query({
+            query: ({ campId, startIndex, endIndex }) => ({
+                method: "get",
+                url: `/api/camps/${campId}/begin/${startIndex}/end/${endIndex}`,
+                isReload: false,
             }),
         }),
         updateCampBbsTable: builder.mutation({
-            query: ({ campId, subMethod, formData, formType, getIndex }) => ({
+            query: ({ campId, subMethod, formData, formType }) => ({
                 method: "post",
-                url: `/api/camps/${campId}/${subMethod}/end/${getIndex}`,
+                url: `/api/camps/${campId}/${subMethod}`,
                 body: formData, // dataをbodyに変更
                 formType,
             }),
@@ -75,4 +88,4 @@ function successMessage(formType) {
 }
 
 // use + endpointsで設定した名前 + QueryでHooksが作られる
-export const { useGetCampBbsTableQuery, useUpdateCampBbsTableMutation } = campApi;
+export const { useLazyGetAllCampBbsTableQuery, useGetPageCampBbsTableQuery, useUpdateCampBbsTableMutation } = campApi;
