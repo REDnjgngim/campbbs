@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { update } from "./bbsTableSlice";
+import { tableReload, tableAddList } from "./bbsTableSlice";
 import { modalToggle } from "./modalWindowSlice";
 import { formReset } from "./formTypeParamSlice";
 import { showToast } from "./toastSlice";
@@ -14,21 +14,32 @@ const baseQuery = fetchBaseQuery({
     baseUrl: "http://localhost:8080",
     mode: "cors",
     prepareHeaders: baseHeaders,
-    timeout: 1000,
+    timeout: 10000,
 });
 
 const baseQueryWithReauth = async (args, api, body) => {
-    const { formType } = args;
+    const { formType, method, isReload } = args;
     api.dispatch(setLoadingState(true)); // ボタン制御
     let result = await baseQuery(args, api, body);
     api.dispatch(setLoadingState(false)); // ボタン制御を解除
     if (result.error) {
         api.dispatch(showToast({ description: `エラーが発生しました`, success: false }));
     } else {
-        api.dispatch(showToast({ description: successMessage(formType), success: true }));
-        api.dispatch(update({ newdata: result.data })); // データを更新
-        api.dispatch(formReset({ formType })); // フォームの保持状態をリセット
-        api.dispatch(modalToggle({ modalType: "close", contentParam: "" })); // モーダルウィンドウを閉じる
+        if (method === "post") {
+            // 投稿したメッセージを出す
+            api.dispatch(showToast({ description: successMessage(formType), success: true }));
+            api.dispatch(formReset({ formType })); // フォームの保持状態をリセット
+            api.dispatch(modalToggle({ modalType: "close", contentParam: "" })); // モーダルウィンドウを閉じる
+        }
+        if (method === "get") {
+            if (isReload) {
+                // メッセージを全て再更新
+                api.dispatch(tableReload({ newdata: result.data }));
+            } else {
+                // メッセージを追加読み込み
+                api.dispatch(tableAddList({ newdata: result.data }));
+            }
+        }
     }
     return result;
 };
@@ -36,10 +47,18 @@ const baseQueryWithReauth = async (args, api, body) => {
 export const campApi = createApi({
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({
-        getCampBbsTable: builder.query({
-            query: (campId) => ({
+        getAllCampBbsTable: builder.query({
+            query: ({ campId, endIndex }) => ({
                 method: "get",
-                url: `/api/camps/${campId}`,
+                url: `/api/camps/${campId}/begin/1/end/${endIndex}`,
+                isReload: true,
+            }),
+        }),
+        getPageCampBbsTable: builder.query({
+            query: ({ campId, startIndex, endIndex }) => ({
+                method: "get",
+                url: `/api/camps/${campId}/begin/${startIndex}/end/${endIndex}`,
+                isReload: false,
             }),
         }),
         updateCampBbsTable: builder.mutation({
@@ -69,4 +88,4 @@ function successMessage(formType) {
 }
 
 // use + endpointsで設定した名前 + QueryでHooksが作られる
-export const { useGetCampBbsTableQuery, useUpdateCampBbsTableMutation } = campApi;
+export const { useLazyGetAllCampBbsTableQuery, useGetPageCampBbsTableQuery, useUpdateCampBbsTableMutation } = campApi;

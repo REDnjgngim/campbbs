@@ -4,18 +4,25 @@ export const bbsTableSlice = createSlice({
     name: "bbsTable",
     initialState: {
         log: [],
-        timeline: {},
+        timeline: [],
+        defaultIndex: 3,
     },
     reducers: {
-        update: (state, action) => {
-            const { newdata } = action.payload; // action.payloadから必要な情報を取得
+        tableReload: (state, action) => {
+            const { newdata } = action.payload;
             state.log = newdata.log;
             state.timeline = newdata.timeline;
+            return state;
+        },
+        tableAddList: (state, action) => {
+            const { newdata } = action.payload;
+            state.log.push(...newdata.log);
+            state.timeline.push(...newdata.timeline);
             return state;
         },
     },
 });
 
-export const { update } = bbsTableSlice.actions;
+export const { tableReload, tableAddList } = bbsTableSlice.actions;
 
 export default bbsTableSlice.reducer;

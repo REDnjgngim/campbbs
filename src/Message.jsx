@@ -18,7 +18,7 @@ const selectHAKONIWAData = createSelector(
 );
 
 export default function Message({ messageData, indent, isFixed, messageSend }) {
-    const { HislandId, HwritenTurn, HcampId, HviewLastTime, HcampLists } = useSelector(selectHAKONIWAData);
+    const { HislandId, HcampId, HviewLastTime, HcampLists } = useSelector(selectHAKONIWAData);
     const {
         No,
         title,
@@ -39,7 +39,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const dispatch = useDispatch();
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
-    const isDeletedMessage = HwritenTurn === -1;
+    const isDeletedMessage = writenTurn === -1;
     const isOwnMessage = islandId === HislandId;
     const isImportant = important;
     const isDiplomacyMessage = targetCampIds.length > 0;

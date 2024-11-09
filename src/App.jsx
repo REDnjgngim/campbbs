@@ -6,7 +6,7 @@ import FixedFooterButtons from "./FixedFooterButtons.jsx";
 import ModalWindow from "./ModalWindow";
 import Toast from "./Toast";
 import { useSelector } from "react-redux";
-import { useUpdateCampBbsTableMutation } from "./redux/rtk_query";
+import { useLazyGetAllCampBbsTableQuery, useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 import { createSelector } from "reselect";
 import { message_newPost, message_edit, message_pin, message_delete } from "./postManager.js";
 
@@ -23,19 +23,39 @@ const selectHAKONIWAData = createSelector(
     }),
 );
 
+const selectNewbbsTable = createSelector(
+    (state) => state.bbsTable,
+    (bbsTable) => ({
+        log: bbsTable.log,
+        timeline: bbsTable.timeline,
+    }),
+);
+
 function App() {
     const HAKONIWAData = useSelector(selectHAKONIWAData);
+    const newbbsTable = useSelector(selectNewbbsTable);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
     const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
 
+    // 取得済みのメッセージ全更新
+    const hasGroupIndex = useSelector((state) => state.bbsTable.timeline.length);
+    const [trigger] = useLazyGetAllCampBbsTableQuery();
+    const bbsTableFetch = (count) => {
+        trigger({ campId: HcampId, endIndex: hasGroupIndex + count });
+    };
+
     const messageSend = (form, formType) => {
         let updateType = formType;
+        let addtableList = 0;
         if (updateType === "diplomacy") updateType = "new"; // 外交文書はnewと同じ扱い
         let createMessage;
         switch (formType) {
             case "new":
             case "diplomacy":
+                createMessage = message_newPost(form, HAKONIWAData, formType);
+                addtableList = 1;
+                break;
             case "reply":
                 createMessage = message_newPost(form, HAKONIWAData, formType);
                 break;
@@ -68,7 +88,10 @@ function App() {
             subMethod: updateType,
             formData,
             formType,
+            endIndex: newbbsTable.timeline.length,
         });
+
+        bbsTableFetch(addtableList);
 
         return false;
     };
@@ -79,7 +102,7 @@ function App() {
         <div className="App">
             <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
             <BbsMessages messageSend={messageSend} />
-            <FixedFooterButtons />
+            <FixedFooterButtons fetchQuery={bbsTableFetch} />
             {isModalOpen && <ModalWindow messageSend={messageSend} />}
             <Toast />
         </div>

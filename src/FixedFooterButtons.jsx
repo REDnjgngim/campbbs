@@ -1,12 +1,9 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useGetCampBbsTableQuery } from "./redux/rtk_query";
 import { modalToggle } from "./redux/modalWindowSlice";
 
-export default function FixedFooterButtons() {
+export default function FixedFooterButtons({ fetchQuery }) {
     const dispatch = useDispatch();
-    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
-    const { refetch } = useGetCampBbsTableQuery(HcampId);
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
@@ -16,10 +13,10 @@ export default function FixedFooterButtons() {
             <div className="fixed bottom-4 left-4">
                 <button
                     className={`mb-3 rounded-full border bg-white p-4 shadow-md ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
-                    onClick={() => refetch()}
+                    onClick={() => fetchQuery(0)}
                     disabled={isLoadingState}
                 >
-                    <span className={`block h-8 w-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>
+                    <span className={`block size-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>
                 </button>
             </div>
             <div className="fixed bottom-4 right-4 mb-2">

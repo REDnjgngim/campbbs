@@ -44,7 +44,7 @@ use utf8;
 
         sub get_api {
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
-            my ($campNo) = ($cgi->path_info()) =~ /\/camps\/(\d+)/;  # パスを分割
+            my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
@@ -55,12 +55,30 @@ use utf8;
 
                 my $log_json = decode_json($log);
                 my $timeline_json = decode_json($timeline);
-                $camp_log = encode_json($log_json->{$campNo});
-                $camp_timeline = encode_json($timeline_json->{$campNo});
+
+                # 指定範囲のタイムラインを抽出
+                my @timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
+                $camp_timeline = encode_json(\@timeline_groups);
+                # タイムラインを基準に必要なメッセージを抽出
+                my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_groups);
+                $camp_log = encode_json(\@log_filtered);
             }
 
             # 出力
             print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
+
+            # 全てのキーを抽出する再帰関数
+            sub extract_keys {
+                my $ref = shift;
+                my @keys;
+                if (ref($ref) eq 'HASH') {
+                    for my $key (keys %$ref) {
+                        push @keys, $key;
+                        push @keys, extract_keys($ref->{$key});
+                    }
+                }
+                return @keys;
+            }
         }
 
         sub post_api {
@@ -94,9 +112,6 @@ use utf8;
                 write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
                 write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
             }
-
-            # 出力
-            print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
         }
 
         sub post_newMessage{
@@ -141,14 +156,29 @@ use utf8;
                 # timeline追加処理
                 my $current = $bbsTable_timeline->{$campId};
                 if($newMessageForCamp->{"parentId"}){
-                    # 返信は階層を辿る
-                    my $treePath = timeline_Index_Recursively($current, $newMessageForCamp->{"parentId"});
+                    # 返信
+                    my ($treePath, $index) = ("", -1);
+                    # 階層を辿る
+                    for (my $i = 0; $i <= $#{$current}; $i++) {
+                        $treePath = timeline_Index_Recursively($current->[$i], $newMessageForCamp->{"parentId"});
+                        if($treePath ne ""){
+                            $index = $i;
+                            last;
+                        }
+                    }
                     my @pathArray = split(/,/, $treePath);
+                    $current = $current->[$index]; # 最初のパス
                     for (my $i = 0; $i <= $#pathArray; $i++) {
                         $current = $current->{$pathArray[$i]}; # パスをたどる
                     }
+                    $current->{$newMessageForCamp->{"No"}} = {};
+
+                    # 返信したグループは一番新しくする
+                    push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
+                }else{
+                    # 新規投稿
+                    push(@{$current}, {$newMessageForCamp->{"No"} => {}})
                 }
-                $current->{$newMessageForCamp->{"No"}} = {};
             }
 
             return 1;
@@ -200,15 +230,28 @@ use utf8;
 
                 # timeline削除
                 my $current = $bbsTable_timeline->{$campNo};
-                my $treePath = timeline_Index_Recursively($current, $newMessage_json->{"No"});
+                my ($treePath, $index) = ("", -1);
+                for (my $i = 0; $i <= $#{$current}; $i++) {
+                    $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
+                    if($treePath ne ""){
+                        $index = $i;
+                        last;
+                    }
+                }
                 if($treePath ne ""){
                     my @pathArray = split(/,/, $treePath);
+                    $current = $current->[$index]; # 最初のパス
                     for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
                         $current = $current->{$pathArray[$i]}; # パスをたどる
                     }
                     # 子にメッセージがなかったら削除可能
                     if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
                         delete $current->{$newMessage_json->{"No"}};
+
+                        if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
+                            # グループの中身が空
+                            splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
+                        }
                     }
                 }
 
@@ -278,6 +321,35 @@ use utf8;
 
             flock($fh, 8); # ロック解除
             close $fh;
+        }
+
+        sub timeline_filtered {
+            my ($timeline_array, $begin, $end) = @_;
+            my @timelined_filtered;
+            $end = $#{$timeline_array} if($end == 0);
+            my $line = scalar(@{$timeline_array});
+
+            # 最新の書き込みから$lineまたは$endまでループして抽出
+            for (my $i = -$begin; $i >= -$line; $i--) {
+                push(@timelined_filtered, $timeline_array->[$i]);
+                last if($i <= -$end);
+            }
+            return @timelined_filtered;
+        }
+
+        sub log_filtered {
+            my ($log_array, $timeline_groups) = @_;
+            my @groupNos;
+            # タイムラインからメッセージNoだけをまとめる
+            foreach my $timeline_group (@{$timeline_groups}){
+                push(@groupNos, extract_keys($timeline_group));
+            }
+            # 検索対象のNoをキーとしたハッシュを作成
+            my %search_hash = map { $_ => 1 } @groupNos;
+            # 必要なメッセージだけ抽出
+            my @log_filtered = grep { exists $search_hash{ $_->{"No"} } } @{$log_array};
+
+            return @log_filtered;
         }
 
         sub uploadImage_regulation {

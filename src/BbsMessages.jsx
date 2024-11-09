@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { useSelector } from "react-redux";
 import Message from "./Message";
 import { createSelector } from "reselect";
-import { useGetCampBbsTableQuery } from "./redux/rtk_query";
+import { useGetPageCampBbsTableQuery } from "./redux/rtk_query";
 
 const selectNewbbsTable = createSelector(
     (state) => state.bbsTable,
@@ -15,11 +15,57 @@ const selectNewbbsTable = createSelector(
 
 export default function BbsMessages({ messageSend }) {
     const newbbsTable = useSelector(selectNewbbsTable);
+
     const HcampId = useSelector((state) => state.HAKONIWAData.campId);
-    const { error, isLoading } = useGetCampBbsTableQuery(HcampId);
+    const isGetPageSkip = useRef(false);
+    const isFetchingRef = useRef(false);
+
+    // データ取得クエリ
+    const [addTimelines, setAddTimelines] = useState(0);
+    const GET_TIMELINES = 10; // 1回に読み込む数
+    const FETCH_START_OFFSET = 200; // 読み込み開始位置。一番下からの距離(px)
+
+    const { data, error, isLoading } = useGetPageCampBbsTableQuery(
+        {
+            campId: HcampId,
+            startIndex: addTimelines + GET_TIMELINES - (GET_TIMELINES - 1), // 初期値は 1
+            endIndex: addTimelines + GET_TIMELINES,
+        },
+        { skip: isGetPageSkip.current },
+    );
+
+    // 無限スクロールでのデータ取得処理
+    useEffect(() => {
+        const handleScroll = () => {
+            if (
+                window.innerHeight + document.documentElement.scrollTop >=
+                    document.documentElement.offsetHeight - FETCH_START_OFFSET &&
+                !isFetchingRef.current
+            ) {
+                isFetchingRef.current = true;
+                setAddTimelines((prevIndex) => prevIndex + GET_TIMELINES);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, [isLoading]);
+
+    useEffect(() => {
+        if (data) {
+            isFetchingRef.current = false;
+
+            if (data.timeline.length === 0) {
+                // 受け取ったデータが空の場合はそれ以上ないので終了
+                isGetPageSkip.current = true;
+            }
+        }
+    }, [data]);
 
     if (isLoading) {
-        return <div className="LOADING-CIRCLE h-10 w-10"></div>;
+        return <div className="LOADING-CIRCLE size-10"></div>;
     }
 
     if (error) {
@@ -59,11 +105,7 @@ export default function BbsMessages({ messageSend }) {
             const messageData = newbbsTable.log.find((message) => message.No === key);
             if (messageData) {
                 const message = renderMessage(messageData, depth, 0);
-                if (depth === 0) {
-                    MessageArray.push([message]);
-                } else {
-                    MessageArray[MessageArray.length - 1].push(message);
-                }
+                MessageArray[MessageArray.length - 1].push(message);
             }
             if (typeof timelineNode[key] === "object") {
                 addMessagesRecursively(timelineNode[key], depth + 1);
@@ -71,12 +113,9 @@ export default function BbsMessages({ messageSend }) {
         });
     };
 
-    addMessagesRecursively(newbbsTable.timeline);
-
-    MessageArray.sort((a, b) => {
-        const maxWritenTimeA = Math.max(...a.map((message) => message.props.messageData.writenTime));
-        const maxWritenTimeB = Math.max(...b.map((message) => message.props.messageData.writenTime));
-        return maxWritenTimeB - maxWritenTimeA;
+    newbbsTable.timeline.forEach((group) => {
+        MessageArray.push([]);
+        addMessagesRecursively(group);
     });
 
     const importMessage = newbbsTable.log.find((message) => message.important === true);
