@@ -23,6 +23,7 @@ export default function BbsMessages({ messageSend }) {
     // データ取得クエリ
     const [addTimelines, setAddTimelines] = useState(0);
     const GET_TIMELINES = 10; // 1回に読み込む数
+    const FETCH_START_OFFSET = 200; // 読み込み開始位置。一番下からの距離(px)
 
     const { data, error, isLoading } = useGetPageCampBbsTableQuery(
         {
@@ -38,7 +39,7 @@ export default function BbsMessages({ messageSend }) {
         const handleScroll = () => {
             if (
                 window.innerHeight + document.documentElement.scrollTop >=
-                    document.documentElement.offsetHeight - 200 &&
+                    document.documentElement.offsetHeight - FETCH_START_OFFSET &&
                 !isFetchingRef.current
             ) {
                 isFetchingRef.current = true;
