@@ -20,9 +20,10 @@ use utf8;
         my ($self, $cgi) = @_;
 
         my $method = $cgi->request_method();
+        my $isFaild = 0;
 
         # ヘッダー
-        print "HTTP/1.0 200 OK\n";
+        print "HTTP/1.1 200 OK\n";
         print "Access-Control-Allow-Origin: *\n";
         print "Access-Control-Allow-Headers: Content-Type\n";
         print "Content-Type: application/json\n\n";
@@ -35,11 +36,16 @@ use utf8;
 
         if (exists $routes{$method}) {
             my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
-            $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
+            $isFaild = $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
         } else {
-            print "HTTP/1.0 404 Not Found\n";
+            print "HTTP/1.1 404 Not Found\n";
             print "Content-Type: text/plain\n\n";
             print "Not Found";
+            return; # 終了
+        }
+
+        if ($isFaild){
+            print "Bad Request";
         }
 
         sub get_api {
@@ -49,6 +55,7 @@ use utf8;
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
             # 掲示板ログ・タイムラインが両方ある場合のみ
+            # ファイルが無い＝ログが無いなのでエラーは返さない
             if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
                 my $log = read_file_with_lock($BBSLOG_FILEPATH);
                 my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
@@ -66,6 +73,8 @@ use utf8;
 
             # 出力
             print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
+
+            return 0;
 
             # 全てのキーを抽出する再帰関数
             sub extract_keys {
@@ -97,6 +106,7 @@ use utf8;
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
             # 掲示板ログ・タイムラインが両方ある場合のみ
+            # ファイルが無い＝ログが無いなのでエラーは返さない
             if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
                 my $log = read_file_with_lock($BBSLOG_FILEPATH);
                 my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
@@ -104,7 +114,11 @@ use utf8;
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
+                my $isFaild = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
+
+                if ($isFaild) {
+                    return 1;
+                }
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
@@ -112,6 +126,8 @@ use utf8;
                 write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
                 write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
             }
+
+            return 0;
         }
 
         sub post_newMessage{
