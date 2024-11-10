@@ -52,6 +52,11 @@ use utf8;
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
             my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
+            unless (is_valid_camp_id($campNo)) {
+                # 存在しない陣営id
+                return 1;
+            }
+
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
             # 掲示板ログ・タイムラインが両方ある場合のみ
@@ -105,6 +110,12 @@ use utf8;
 
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
+
+            unless (is_valid_camp_id($campNo)) {
+                # 存在しない陣営id
+                return 1;
+            }
+
             # 掲示板ログ・タイムラインが両方ある場合のみ
             # ファイルが無い＝ログが無いなのでエラーは返さない
             if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
@@ -138,6 +149,11 @@ use utf8;
 
             # 陣営ごとに処理
             foreach my $campId (@campIds){
+                unless (is_valid_camp_id($campId)) {
+                    # 存在しない陣営id(送信先も含む)
+                    return 1;
+                }
+
                 my $newMessageForCamp = { %$newMessage_json };
                 # log追加処理
                 my $newNo = 0;
@@ -197,7 +213,7 @@ use utf8;
                 }
             }
 
-            return 1;
+            return 0;
         }
 
         sub post_editMessage{
@@ -216,9 +232,9 @@ use utf8;
                     next if($key eq "No");
                     $editMessage->{$key} = $newMessage_json->{$key};
                 }
-                return 1;
+                return 0;
             }
-            return 0;
+            return 1;
         }
 
         sub post_deleteMessage{
@@ -271,9 +287,9 @@ use utf8;
                     }
                 }
 
-                return 1;
+                return 0;
             }
-            return 0;
+            return 1;
         }
 
         sub timeline_Index_Recursively {
@@ -418,6 +434,14 @@ use utf8;
 
                 return system($magick_cmd);
             }
+        }
+
+        sub is_valid_camp_id {
+            my ($campNo) = @_;
+            my $campIdsFile = './campIds.csv';
+            my $campIdsContent = read_file_with_lock($campIdsFile);
+            my @campIds = split (/,/, $campIdsContent);
+            return grep { $_ == $campNo } @campIds;
         }
     }
 }
