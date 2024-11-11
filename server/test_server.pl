@@ -187,9 +187,8 @@ use utf8;
 
                 # timeline追加処理
                 my $current = $bbsTable_timeline->{$campId};
+                my ($treePath, $index) = ("", -1);
                 if($newMessageForCamp->{"parentId"}){
-                    # 返信
-                    my ($treePath, $index) = ("", -1);
                     # 階層を辿る
                     for (my $i = 0; $i <= $#{$current}; $i++) {
                         $treePath = timeline_Index_Recursively($current->[$i], $newMessageForCamp->{"parentId"});
@@ -198,6 +197,11 @@ use utf8;
                             last;
                         }
                     }
+                }
+                print STDERR "$index\n";
+
+                if($index > -1){
+                    # 返信
                     my @pathArray = split(/,/, $treePath);
                     $current = $current->[$index]; # 最初のパス
                     for (my $i = 0; $i <= $#pathArray; $i++) {
@@ -208,7 +212,7 @@ use utf8;
                     # 返信したグループは一番新しくする
                     push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
                 }else{
-                    # 新規投稿
+                    # 新規投稿 or 返信先が存在しないので新規投稿扱い
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}})
                 }
             }
@@ -219,7 +223,9 @@ use utf8;
         sub post_editMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # PUT
-            my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
+            my $index = search_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
+            print STDERR "$index\n";
+
             if($index > -1){
                 # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
                 if($newMessage_json->{"important"}){
@@ -233,63 +239,68 @@ use utf8;
                     $editMessage->{$key} = $newMessage_json->{$key};
                 }
                 return 0;
+            }else{
+                # メッセージが存在しない
+                return 1;
             }
-            return 1;
         }
 
         sub post_deleteMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # DELETE
-            # log削除
-            my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
-            if($index > -1){
-                # log削除
-                my $editMessage = $bbsTable_log->{$campNo}[$index];
-                my $deleteMessage = {
-                    "title" => "このメッセージは削除されました",
-                    "owner" => "",
-                    "islandName" => "",
-                    "content" => "",
-                    "writenTurn" => -1,
-                    "contentColor" => "",
-                    "important" => 1 == 0,
-                    "images" => [],
-                };
-                foreach my $key (keys %{$deleteMessage}) {
-                    next if($key eq "No");
-                    $editMessage->{$key} = $deleteMessage->{$key};
-                }
 
-                # timeline削除
-                my $current = $bbsTable_timeline->{$campNo};
-                my ($treePath, $index) = ("", -1);
-                for (my $i = 0; $i <= $#{$current}; $i++) {
-                    $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
-                    if($treePath ne ""){
-                        $index = $i;
-                        last;
-                    }
-                }
+            # timeline削除
+            my $current = $bbsTable_timeline->{$campNo};
+            my ($treePath, $index) = ("", -1);
+            for (my $i = 0; $i <= $#{$current}; $i++) {
+                $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
                 if($treePath ne ""){
-                    my @pathArray = split(/,/, $treePath);
-                    $current = $current->[$index]; # 最初のパス
-                    for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
-                        $current = $current->{$pathArray[$i]}; # パスをたどる
-                    }
-                    # 子にメッセージがなかったら削除可能
-                    if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
-                        delete $current->{$newMessage_json->{"No"}};
-
-                        if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
-                            # グループの中身が空
-                            splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
-                        }
-                    }
+                    $index = $i;
+                    last;
                 }
-
-                return 0;
             }
-            return 1;
+
+            if($index == -1){
+                # 既に削除されたメッセージ
+                my $localtime = scalar localtime;
+                my $description = "[$localtime] deleted_messageNo: $newMessage_json->{\"No\"}\n";
+                write_file_with_lock("./error_log.txt", $description, ">>");
+                return
+            }
+
+            my @pathArray = split(/,/, $treePath);
+            $current = $current->[$index]; # 最初のパス
+            for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
+                $current = $current->{$pathArray[$i]}; # パスをたどる
+            }
+            # 子にメッセージがなかったら削除可能
+            if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
+                delete $current->{$newMessage_json->{"No"}};
+
+                if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
+                    # グループの中身が空
+                    splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
+                }
+            }
+
+            # log削除
+            my $editMessage = $bbsTable_log->{$campNo}[$index];
+            my $deleteMessage = {
+                "title" => "このメッセージは削除されました",
+                "owner" => "",
+                "islandName" => "",
+                "content" => "",
+                "writenTurn" => -1,
+                "contentColor" => "",
+                "important" => 1 == 0,
+                "images" => [],
+            };
+            foreach my $key (keys %{$deleteMessage}) {
+                next if($key eq "No");
+                $editMessage->{$key} = $deleteMessage->{$key};
+            }
+
+            return 0;
         }
 
         sub timeline_Index_Recursively {
@@ -451,6 +462,20 @@ use utf8;
             }
 
             return $isValid;
+        }
+
+        sub search_messageNo {
+            my ($bbsTable_campLog, $message_targetNo) = @_;
+
+            my $index = (grep { $bbsTable_campLog->[$_]{"No"} eq $message_targetNo } 0..$#{$bbsTable_campLog})[0] // -1;
+
+            if($index == -1){
+                my $localtime = scalar localtime;
+                my $description = "[$localtime] invalid_messageNo: $message_targetNo\n";
+                write_file_with_lock("./error_log.txt", $description, ">>");
+            }
+
+            return $index;
         }
     }
 }
