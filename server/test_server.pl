@@ -134,8 +134,8 @@ use utf8;
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
-                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
+                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log), ">");
+                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
             }
 
             return 0;
@@ -329,9 +329,9 @@ use utf8;
         }
 
         sub write_file_with_lock {
-            my ($filename, $content) = @_;
+            my ($filename, $content, $option) = @_;
 
-            open my $fh, ">", $filename or die $!;
+            open my $fh, $option, $filename or die $!;
             flock($fh, 2); # 排他ロック
 
             print $fh $content;
@@ -437,11 +437,20 @@ use utf8;
         }
 
         sub is_valid_camp_id {
-            my ($campNo) = @_;
+            my ($campId) = @_;
             my $campIdsFile = './campIds.csv';
             my $campIdsContent = read_file_with_lock($campIdsFile);
             my @campIds = split (/,/, $campIdsContent);
-            return grep { $_ == $campNo } @campIds;
+
+            my $isValid = grep { $_ == $campId } @campIds;
+
+            unless($isValid){
+                my $localtime = scalar localtime;
+                my $description = "[$localtime] invalid_camp_id: $campId\n";
+                write_file_with_lock("./error_log.txt", $description, ">>");
+            }
+
+            return $isValid;
         }
     }
 }
