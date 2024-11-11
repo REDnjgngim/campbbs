@@ -198,7 +198,6 @@ use utf8;
                         }
                     }
                 }
-                print STDERR "$index\n";
 
                 if($index > -1){
                     # 返信
@@ -223,31 +222,53 @@ use utf8;
         sub post_editMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # PUT
-            my $index = search_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
-            print STDERR "$index\n";
+            my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
 
-            if($index > -1){
-                # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
-                if($newMessage_json->{"important"}){
-                    my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
-                    $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
-                }
-
-                my $editMessage = $bbsTable_log->{$campNo}[$index];
-                foreach my $key (keys %{$newMessage_json}) {
-                    next if($key eq "No");
-                    $editMessage->{$key} = $newMessage_json->{$key};
-                }
-                return 0;
-            }else{
-                # メッセージが存在しない
+            if($messageIndex == -1){
+                # 存在しないメッセージ
                 return 1;
             }
+
+            # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
+            if($newMessage_json->{"important"}){
+                my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
+                $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
+            }
+
+            my $editMessage = $bbsTable_log->{$campNo}[$messageIndex];
+            foreach my $key (keys %{$newMessage_json}) {
+                next if($key eq "No");
+                $editMessage->{$key} = $newMessage_json->{$key};
+            }
+            return 0;
         }
 
         sub post_deleteMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # DELETE
+            my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
+
+            if($messageIndex == -1){
+                # 存在しないメッセージ
+                return 1;
+            }
+
+            # log削除
+            my $editMessage = $bbsTable_log->{$campNo}[$messageIndex];
+            my $deleteMessage = {
+                "title" => "このメッセージは削除されました",
+                "owner" => "",
+                "islandName" => "",
+                "content" => "",
+                "writenTurn" => -1,
+                "contentColor" => "",
+                "important" => 1 == 0,
+                "images" => [],
+            };
+            foreach my $key (keys %{$deleteMessage}) {
+                next if($key eq "No");
+                $editMessage->{$key} = $deleteMessage->{$key};
+            }
 
             # timeline削除
             my $current = $bbsTable_timeline->{$campNo};
@@ -258,14 +279,6 @@ use utf8;
                     $index = $i;
                     last;
                 }
-            }
-
-            if($index == -1){
-                # 既に削除されたメッセージ
-                my $localtime = scalar localtime;
-                my $description = "[$localtime] deleted_messageNo: $newMessage_json->{\"No\"}\n";
-                write_file_with_lock("./error_log.txt", $description, ">>");
-                return
             }
 
             my @pathArray = split(/,/, $treePath);
@@ -281,23 +294,6 @@ use utf8;
                     # グループの中身が空
                     splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
                 }
-            }
-
-            # log削除
-            my $editMessage = $bbsTable_log->{$campNo}[$index];
-            my $deleteMessage = {
-                "title" => "このメッセージは削除されました",
-                "owner" => "",
-                "islandName" => "",
-                "content" => "",
-                "writenTurn" => -1,
-                "contentColor" => "",
-                "important" => 1 == 0,
-                "images" => [],
-            };
-            foreach my $key (keys %{$deleteMessage}) {
-                next if($key eq "No");
-                $editMessage->{$key} = $deleteMessage->{$key};
             }
 
             return 0;
@@ -464,7 +460,7 @@ use utf8;
             return $isValid;
         }
 
-        sub search_messageNo {
+        sub existing_messageNo {
             my ($bbsTable_campLog, $message_targetNo) = @_;
 
             my $index = (grep { $bbsTable_campLog->[$_]{"No"} eq $message_targetNo } 0..$#{$bbsTable_campLog})[0] // -1;
@@ -473,6 +469,13 @@ use utf8;
                 my $localtime = scalar localtime;
                 my $description = "[$localtime] invalid_messageNo: $message_targetNo\n";
                 write_file_with_lock("./error_log.txt", $description, ">>");
+            }
+
+            if($index > -1 && $bbsTable_campLog->[$index]{"writenTurn"} == -1){
+                my $localtime = scalar localtime;
+                my $description = "[$localtime] deleted_messageNo: $message_targetNo\n";
+                write_file_with_lock("./error_log.txt", $description, ">>");
+                $index = -1; # 存在しない扱いとする
             }
 
             return $index;
