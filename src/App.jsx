@@ -39,22 +39,23 @@ function App() {
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
 
     // 取得済みのメッセージ全更新
+    const GET_TIMELINES = 10; // 1回に読み込む数
     const hasGroupIndex = useSelector((state) => state.bbsTable.timeline.length);
     const [trigger] = useLazyGetAllCampBbsTableQuery();
-    const bbsTableFetch = (count) => {
-        trigger({ campId: HcampId, endIndex: hasGroupIndex + count });
+    const bbsTableFetch = () => {
+        // エラーなどで0になっている場合は初期値にする
+        let getIndex = hasGroupIndex < GET_TIMELINES ? GET_TIMELINES : hasGroupIndex;
+        trigger({ campId: HcampId, endIndex: getIndex }, false);
     };
 
     const messageSend = (form, formType) => {
         let updateType = formType;
-        let addtableList = 0;
         if (updateType === "diplomacy") updateType = "new"; // 外交文書はnewと同じ扱い
         let createMessage;
         switch (formType) {
             case "new":
             case "diplomacy":
                 createMessage = message_newPost(form, HAKONIWAData, formType);
-                addtableList = 1;
                 break;
             case "reply":
                 createMessage = message_newPost(form, HAKONIWAData, formType);
@@ -91,7 +92,7 @@ function App() {
             endIndex: newbbsTable.timeline.length,
         });
 
-        bbsTableFetch(addtableList);
+        bbsTableFetch();
 
         return false;
     };
@@ -101,7 +102,7 @@ function App() {
     return (
         <div className="App">
             <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
-            <BbsMessages messageSend={messageSend} />
+            <BbsMessages messageSend={messageSend} GET_TIMELINES={GET_TIMELINES} />
             <FixedFooterButtons fetchQuery={bbsTableFetch} />
             {isModalOpen && <ModalWindow messageSend={messageSend} />}
             <Toast />

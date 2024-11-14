@@ -13,7 +13,7 @@ export default function FixedFooterButtons({ fetchQuery }) {
             <div className="fixed bottom-4 left-4">
                 <button
                     className={`mb-3 rounded-full border bg-white p-4 shadow-md ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
-                    onClick={() => fetchQuery(0)}
+                    onClick={() => fetchQuery()}
                     disabled={isLoadingState}
                 >
                     <span className={`block size-8 ${isLoadingState ? "LOADING-CIRCLE" : "RELOAD"}`}></span>
