@@ -75,13 +75,13 @@ function App() {
         }
 
         const formData = new FormData();
-        formData.append("newMessage", JSON.stringify(createMessage));
         if (createMessage.images) {
             for (let i = 0; i < createMessage.images.length; i++) {
                 formData.append("images", createMessage.images[i]);
             }
             createMessage.images = [];
         }
+        formData.append("newMessage", JSON.stringify(createMessage));
 
         // API通信
         updateCampBbsTable({

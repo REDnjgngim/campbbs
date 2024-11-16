@@ -128,7 +128,6 @@ use utf8;
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
-            my $imagePATH = "../public/campBbsData/image";
 
             if($newMessage_json->{"parentId"}){
                 # 返信時は先に返信先のメッセージがあるかだけチェック
@@ -152,20 +151,7 @@ use utf8;
                 $newMessageForCamp->{"writenTime"} = int(time());
 
                 # 画像ファイル処理
-                my @imageFilehandles = $cgi->upload("images");
-                foreach my $index (0..$#imageFilehandles) {
-                    my $imageFilehandle = $imageFilehandles[$index];
-                    if (defined $imageFilehandle) {
-                        # 拡張子だけ取得
-                        $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
-                        my $extension = $1;
-                        my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
-                        my $fileName = "${randomString}.${extension}";
-                        uploadImage_regulation($imageFilehandle, $fileName, $campId);
-                        push(@{$newMessageForCamp->{"images"}}, $fileName);
-                    }
-                    last if($index == 1); # 画像は2枚まで
-                }
+                saveImages($cgi, $newMessageForCamp, $campId);
 
                 # log追加
                 push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
@@ -361,10 +347,52 @@ use utf8;
             return @log_filtered;
         }
 
-        sub uploadImage_regulation {
-            my ($imageFilehandle, $upload_fileName, $campId) = @_;
+        sub saveImages {
+            my ($cgi, $newMessageForCamp, $campId) = @_;
             my $imagePATH = "../public/campBbsData/image";
-            my $full_path = "$imagePATH/$upload_fileName";
+            my @imageFilehandles = $cgi->upload("images");
+            my (@validImages, @imageFileNames);
+
+            if($#imageFilehandles == -1){
+                # 添付画像なし
+                return;
+            }
+
+            foreach my $index (0..$#imageFilehandles) {
+                my $imageFilehandle = $imageFilehandles[$index];
+                if (defined $imageFilehandle) {
+                    # ファイル名を格納
+                    my $fileName = setFileName($cgi, $imageFilehandle);
+                    push(@imageFileNames, $fileName);
+                    # 画像の状態をチェック
+                    my $validImage = uploadImage_regulation($imageFilehandle, $campId);
+                    push(@validImages, $validImage);
+                }
+                last if($index == 1); # 画像は2枚まで
+            }
+
+            # 全ての画像が問題なかったら保存
+            for(my $i = 0; $i <= $#validImages; $i++){
+                my $fileName = $imageFileNames[$i];
+                push(@{$newMessageForCamp->{"images"}}, $fileName);
+                move($validImages[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
+            }
+
+
+            sub setFileName {
+                my ($cgi, $imageFilehandle) = @_;
+                # 拡張子だけ取得
+                $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
+                my $extension = $1;
+                my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
+                my $fileName = "${randomString}.${extension}";
+
+                return $fileName;
+            }
+        }
+
+        sub uploadImage_regulation {
+            my ($imageFilehandle, $campId) = @_;
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
 
             my ($tmp_fh, $tmp_filename) = tempfile();
@@ -383,25 +411,24 @@ use utf8;
             }
             close $tmp_fh;
 
-            # if(my $problem = validate_image_integrity($tmp_filename)){
-            #     unlink $tmp_filename;
-            #     handleException_exit("image_save_failed_invalid_image_messageCampId_$campId", $problem);
-            # }
+            if(my $problem = validate_image_integrity($tmp_filename)){
+                unlink $tmp_filename;
+                handleException_exit("image_save_failed_invalid_image_messageCampId_$campId", $problem);
+            }
 
             my $processed_tmp_filename = "$tmp_filename-processed";
             if ( my $error_code = normalize_image($tmp_filename, $processed_tmp_filename) ) {
                 handleException_exit("image_save_failed_ImageMagick_command_failed_messageCampId_$campId", $error_code);
             }
 
-            move($processed_tmp_filename, $full_path) or handleException_exit("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
-
             # 一時ファイルを削除
             unlink $tmp_filename;
 
+            return $processed_tmp_filename;
+
             sub normalize_image {
                 my ($tmp_filename, $processed_tmp_filename) = @_;
-                # my $ImageMagickPATH = "/usr/local/bin/convert";
-                my $ImageMagickPATH = "C:\\Program Files\\ImageMagick-7.1.1-Q16-HDRI\\magick";
+                my $ImageMagickPATH = "/usr/local/bin/convert";
 
                 # ImageMagickコマンドセット
                 my $magick_cmd = "\"$ImageMagickPATH\" $tmp_filename";
