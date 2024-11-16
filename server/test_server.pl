@@ -36,26 +36,20 @@ use utf8;
 
         if (exists $routes{$method}) {
             my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
-            $isFaild = $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
+            $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
         } else {
             print "HTTP/1.1 404 Not Found\n";
             print "Content-Type: text/plain\n\n";
             print "Not Found";
-            return; # 終了
         }
 
-        if ($isFaild){
-            print "Bad Request";
-        }
+        return; # 終了
 
         sub get_api {
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
             my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
-            unless (is_valid_camp_id($campNo)) {
-                # 存在しない陣営id
-                return 1;
-            }
+            is_valid_camp_id_check($campNo);
 
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
@@ -78,8 +72,6 @@ use utf8;
 
             # 出力
             print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
-
-            return 0;
 
             # 全てのキーを抽出する再帰関数
             sub extract_keys {
@@ -111,10 +103,7 @@ use utf8;
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
 
-            unless (is_valid_camp_id($campNo)) {
-                # 存在しない陣営id
-                return 1;
-            }
+            is_valid_camp_id_check($campNo);
 
             # 掲示板ログ・タイムラインが両方ある場合のみ
             # ファイルが無い＝ログが無いなのでエラーは返さない
@@ -125,11 +114,7 @@ use utf8;
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                my $isFaild = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
-
-                if ($isFaild) {
-                    return 1;
-                }
+                $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
@@ -137,8 +122,6 @@ use utf8;
                 write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log), ">");
                 write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
             }
-
-            return 0;
         }
 
         sub post_newMessage{
@@ -147,12 +130,14 @@ use utf8;
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
             my $imagePATH = "../public/campBbsData/image";
 
-            # 陣営ごとに処理
+            if($newMessage_json->{"parentId"}){
+                # 返信時は先に返信先のメッセージがあるかだけチェック
+                existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"parentId"});
+            }
+
+            # 外交文書を考慮して陣営ごとに処理
             foreach my $campId (@campIds){
-                unless (is_valid_camp_id($campId)) {
-                    # 存在しない陣営id(送信先も含む)
-                    return 1;
-                }
+                is_valid_camp_id_check($campId);
 
                 my $newMessageForCamp = { %$newMessage_json };
                 # log追加処理
@@ -176,11 +161,7 @@ use utf8;
                         my $extension = $1;
                         my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
                         my $fileName = "${randomString}.${extension}";
-                        my $error = uploadImage_regulation($imageFilehandle, $fileName, $campId);
-                        if($error){
-                            # 存在しない陣営id(送信先も含む)
-                            return 1;
-                        }
+                        uploadImage_regulation($imageFilehandle, $fileName, $campId);
                         push(@{$newMessageForCamp->{"images"}}, $fileName);
                     }
                     last if($index == 1); # 画像は2枚まで
@@ -215,23 +196,16 @@ use utf8;
                     # 返信したグループは一番新しくする
                     push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
                 }else{
-                    # 新規投稿 or 返信先が存在しないので新規投稿扱い
+                    # 新規投稿
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}})
                 }
             }
-
-            return 0;
         }
 
         sub post_editMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # PUT
             my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
-
-            if($messageIndex == -1){
-                # 存在しないメッセージ
-                return 1;
-            }
 
             # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
             if($newMessage_json->{"important"}){
@@ -244,18 +218,12 @@ use utf8;
                 next if($key eq "No");
                 $editMessage->{$key} = $newMessage_json->{$key};
             }
-            return 0;
         }
 
         sub post_deleteMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # DELETE
             my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
-
-            if($messageIndex == -1){
-                # 存在しないメッセージ
-                return 1;
-            }
 
             # log削除
             my $editMessage = $bbsTable_log->{$campNo}[$messageIndex];
@@ -299,8 +267,6 @@ use utf8;
                     splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
                 }
             }
-
-            return 0;
         }
 
         sub timeline_Index_Recursively {
@@ -411,7 +377,7 @@ use utf8;
                 if ($file_size > $MAX_SIZE_MB) {
                     close $tmp_fh;
                     unlink $tmp_filename;
-                    return image_error("image_save_failed_size_over_messageCampId_$campId", "");
+                    handleException_exit("image_save_failed_size_over_messageCampId_$campId");
                 }
                 print $tmp_fh $buffer;
             }
@@ -419,20 +385,18 @@ use utf8;
 
             # if(my $problem = validate_image_integrity($tmp_filename)){
             #     unlink $tmp_filename;
-            #     return image_error("image_save_failed_invalid_image_messageCampId_$campId", $problem);
+            #     handleException_exit("image_save_failed_invalid_image_messageCampId_$campId", $problem);
             # }
 
             my $processed_tmp_filename = "$tmp_filename-processed";
             if ( my $error_code = normalize_image($tmp_filename, $processed_tmp_filename) ) {
-                return image_error("image_save_failed_ImageMagick_command_failed_messageCampId_$campId", $error_code);
+                handleException_exit("image_save_failed_ImageMagick_command_failed_messageCampId_$campId", $error_code);
             }
 
-            move($processed_tmp_filename, $full_path) or image_error("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
+            move($processed_tmp_filename, $full_path) or handleException_exit("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
 
             # 一時ファイルを削除
             unlink $tmp_filename;
-
-            return 0;
 
             sub normalize_image {
                 my ($tmp_filename, $processed_tmp_filename) = @_;
@@ -449,7 +413,7 @@ use utf8;
             }
         }
 
-        sub is_valid_camp_id {
+        sub is_valid_camp_id_check {
             my ($campId) = @_;
             my $campIdsFile = './campIds.csv';
             my $campIdsContent = read_file_with_lock($campIdsFile);
@@ -458,12 +422,8 @@ use utf8;
             my $isValid = grep { $_ == $campId } @campIds;
 
             unless($isValid){
-                my $localtime = scalar localtime;
-                my $description = "[$localtime] invalid_camp_id: $campId\n";
-                write_file_with_lock("./error_log.txt", $description, ">>");
+                handleException_exit("invalid_camp_id", $campId);
             }
-
-            return $isValid;
         }
 
         sub existing_messageNo {
@@ -472,28 +432,24 @@ use utf8;
             my $index = (grep { $bbsTable_campLog->[$_]{"No"} eq $message_targetNo } 0..$#{$bbsTable_campLog})[0] // -1;
 
             if($index == -1){
-                my $localtime = scalar localtime;
-                my $description = "[$localtime] invalid_messageNo: $message_targetNo\n";
-                write_file_with_lock("./error_log.txt", $description, ">>");
+                handleException_exit("invalid_messageNo", $message_targetNo);
             }
 
             if($index > -1 && $bbsTable_campLog->[$index]{"writenTurn"} == -1){
-                my $localtime = scalar localtime;
-                my $description = "[$localtime] deleted_messageNo: $message_targetNo\n";
-                write_file_with_lock("./error_log.txt", $description, ">>");
-                $index = -1; # 存在しない扱いとする
+                handleException_exit("deleted_messageNo", $message_targetNo);
             }
 
             return $index;
         }
 
-        sub image_error {
-            my ($error_message, $log) = @_;
+        sub handleException_exit {
+            my ($error_message, $error_log) = @_;
 
             my $localtime = scalar localtime;
-            my $description = "[$localtime] ${error_message}: [$log] \n";
+            my $description = "[$localtime] ${error_message}: [$error_log] \n";
             write_file_with_lock("./error_log.txt", $description, ">>");
-            return 1;
+            print "Bad Request";
+            die;
         }
     }
 }
