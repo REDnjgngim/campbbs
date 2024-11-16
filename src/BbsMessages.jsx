@@ -42,7 +42,7 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
                     document.documentElement.offsetHeight - FETCH_START_OFFSET &&
                 !isLoadingState
             ) {
-                if (getTimelineIndex === nextTimelineIndex.current) {
+                if (getTimelineIndex === nextTimelineIndex.current && !isGetPageSkip.current) {
                     // エラー等が起きると同じクエリになるので強制発行
                     refetch();
                 } else {

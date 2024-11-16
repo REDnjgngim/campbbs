@@ -176,7 +176,11 @@ use utf8;
                         my $extension = $1;
                         my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
                         my $fileName = "${randomString}.${extension}";
-                        uploadImage_regulation($imageFilehandle, $fileName);
+                        my $error = uploadImage_regulation($imageFilehandle, $fileName, $campId);
+                        if($error){
+                            # 存在しない陣営id(送信先も含む)
+                            return 1;
+                        }
                         push(@{$newMessageForCamp->{"images"}}, $fileName);
                     }
                     last if($index == 1); # 画像は2枚まで
@@ -392,7 +396,7 @@ use utf8;
         }
 
         sub uploadImage_regulation {
-            my ($imageFilehandle, $upload_fileName) = @_;
+            my ($imageFilehandle, $upload_fileName, $campId) = @_;
             my $imagePATH = "../public/campBbsData/image";
             my $full_path = "$imagePATH/$upload_fileName";
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
@@ -407,35 +411,37 @@ use utf8;
                 if ($file_size > $MAX_SIZE_MB) {
                     close $tmp_fh;
                     unlink $tmp_filename;
-                    die "image size over\n";
+                    return image_error("image_save_failed_size_over_messageCampId_$campId", "");
                 }
                 print $tmp_fh $buffer;
             }
             close $tmp_fh;
 
-            if(my $problem = validate_image_integrity($tmp_filename)){
-                unlink $tmp_filename;
-                die $problem;
-            }
+            # if(my $problem = validate_image_integrity($tmp_filename)){
+            #     unlink $tmp_filename;
+            #     return image_error("image_save_failed_invalid_image_messageCampId_$campId", $problem);
+            # }
 
             my $processed_tmp_filename = "$tmp_filename-processed";
             if ( my $error_code = normalize_image($tmp_filename, $processed_tmp_filename) ) {
-                die "ImageMagick command failed with return code: $error_code";
+                return image_error("image_save_failed_ImageMagick_command_failed_messageCampId_$campId", $error_code);
             }
 
-            move($processed_tmp_filename, $full_path) or die "Failed to move processed file: $!";
+            move($processed_tmp_filename, $full_path) or image_error("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
 
             # 一時ファイルを削除
             unlink $tmp_filename;
 
+            return 0;
+
             sub normalize_image {
                 my ($tmp_filename, $processed_tmp_filename) = @_;
-                my $ImageMagickPATH = "/usr/local/bin/convert";
+                # my $ImageMagickPATH = "/usr/local/bin/convert";
+                my $ImageMagickPATH = "C:\\Program Files\\ImageMagick-7.1.1-Q16-HDRI\\magick";
 
                 # ImageMagickコマンドセット
                 my $magick_cmd = "\"$ImageMagickPATH\" $tmp_filename";
                 $magick_cmd .= " +repage -auto-orient +repage";  # 画像の回転を補正
-                $magick_cmd .= " -colorspace sRGB";  # sRGBに変換
                 $magick_cmd .= " -strip";  # メタデータを削除
                 $magick_cmd .= " \"$processed_tmp_filename\"";  # 一時ファイルに出力
 
@@ -479,6 +485,15 @@ use utf8;
             }
 
             return $index;
+        }
+
+        sub image_error {
+            my ($error_message, $log) = @_;
+
+            my $localtime = scalar localtime;
+            my $description = "[$localtime] ${error_message}: [$log] \n";
+            write_file_with_lock("./error_log.txt", $description, ">>");
+            return 1;
         }
     }
 }
