@@ -361,11 +361,14 @@ use utf8;
             foreach my $index (0..$#imageFilehandles) {
                 my $imageFilehandle = $imageFilehandles[$index];
                 if (defined $imageFilehandle) {
+                    # 拡張子だけ先に抽出
+                    $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
+                    my $extension = $1;
                     # ファイル名を格納
-                    my $fileName = setFileName($cgi, $imageFilehandle);
+                    my $fileName = setFileName($extension);
                     push(@imageFileNames, $fileName);
                     # 画像の状態をチェック
-                    my $validImage = uploadImage_regulation($imageFilehandle, $campId);
+                    my $validImage = uploadImage_regulation($imageFilehandle, $extension, $campId);
                     push(@validImages, $validImage);
                 }
                 last if($index == 1); # 画像は2枚まで
@@ -380,10 +383,7 @@ use utf8;
 
 
             sub setFileName {
-                my ($cgi, $imageFilehandle) = @_;
-                # 拡張子だけ取得
-                $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
-                my $extension = $1;
+                my ($extension) = @_;
                 my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
                 my $fileName = "${randomString}.${extension}";
 
@@ -392,10 +392,10 @@ use utf8;
         }
 
         sub uploadImage_regulation {
-            my ($imageFilehandle, $campId) = @_;
+            my ($imageFilehandle, $extension, $campId) = @_;
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
 
-            my ($tmp_fh, $tmp_filename) = tempfile();
+            my ($tmp_fh, $tmp_filename) = tempfile(SUFFIX => $extension);
             binmode $tmp_fh;  # 一時ファイルをバイナリモードで開く
 
             # ファイルハンドルから一時ファイルに書き込み
