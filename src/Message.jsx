@@ -89,11 +89,22 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
             }
         }
 
+        const formatedContent = (content) => {
+            const texts = content.split("\n").map((item, index) => {
+                return (
+                    <React.Fragment key={index}>
+                        {item} <br />
+                    </React.Fragment>
+                );
+            });
+            return <>{texts}</>;
+        };
+
         return (
             <div className="m-1 border-b border-gray-300 p-2">
                 {isDiplomacyMessage && <p className="mb-1 text-left font-bold">{diplomacyCampName}</p>}
                 <p className="break-all text-left" style={{ color: contentColor }}>
-                    {content}
+                    {formatedContent(content)}
                 </p>
                 <div className="flex flex-wrap p-1">
                     {images &&
