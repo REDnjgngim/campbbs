@@ -223,6 +223,17 @@ use utf8;
                 "important" => 1 == 0,
                 "images" => [],
             };
+
+            if($#{$editMessage->{'images'}} >= 0){
+                # 画像削除
+                foreach my $image (@{$editMessage->{'images'}}) {
+                    my $imagePATH_file = "../public/campBbsData/image/$image";
+                    if (-e $imagePATH_file) {
+                        unlink $imagePATH_file;
+                    }
+                }
+            }
+
             foreach my $key (keys %{$deleteMessage}) {
                 next if($key eq "No");
                 $editMessage->{$key} = $deleteMessage->{$key};
