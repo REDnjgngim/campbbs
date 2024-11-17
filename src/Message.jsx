@@ -49,7 +49,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         return (
             <div className="m-1 flex border-b border-gray-300 p-1 text-left">
                 <div className="mb-0.5 shrink-0 border-r border-gray-300 pr-2">No.{No}</div>
-                <div className="grow pl-2 font-bold">
+                <div className="grow break-all pl-2">
                     {title} {writenTime > HviewLastTime && newIcon}
                 </div>
             </div>
@@ -65,7 +65,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         }
 
         return (
-            <div className="m-1 border-b border-gray-300 p-1 text-left">
+            <div className="m-1 break-all border-b border-gray-300 p-1 text-left">
                 <p>{writenUser}</p>
             </div>
         );
@@ -92,7 +92,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         return (
             <div className="m-1 border-b border-gray-300 p-2">
                 {isDiplomacyMessage && <p className="mb-1 text-left font-bold">{diplomacyCampName}</p>}
-                <p className="text-left" style={{ color: contentColor }}>
+                <p className="break-all text-left" style={{ color: contentColor }}>
                     {content}
                 </p>
                 <div className="flex flex-wrap p-1">

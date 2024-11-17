@@ -62,6 +62,11 @@ function PostForm({ formType, MessageNo, messageSend }) {
     const dispatch = useDispatch();
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
+    // 文字数上限
+    const MAX_TITLE_LENGTH = 50;
+    const MAX_NAME_LENGTH = 20;
+    const MAX_CONTENT_LENGTH = 1000;
+
     useEffect(() => {
         setIsSubmitDisabled(!formData[formType].content);
     }, [formData, formType]);
@@ -96,6 +101,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     placeholder="タイトル (省略可)"
                     className="mb-2 border p-2"
                     onChange={handleInputChange}
+                    maxLength={MAX_TITLE_LENGTH}
                 />
                 <input
                     type="text"
@@ -104,6 +110,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     placeholder="名前 (省略可)"
                     className="mb-2 border p-2"
                     onChange={handleInputChange}
+                    maxLength={MAX_NAME_LENGTH}
                 />
                 <textarea
                     name="content"
@@ -112,6 +119,7 @@ function PostForm({ formType, MessageNo, messageSend }) {
                     value={formData[formType].content || ""}
                     style={{ color: formData[formType].color }}
                     onChange={handleInputChange}
+                    maxLength={MAX_CONTENT_LENGTH}
                 />
                 {formType !== "edit" && <InputMultiImageForm />}
                 <div className="flex">
