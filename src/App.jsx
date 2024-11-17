@@ -14,7 +14,6 @@ const selectHAKONIWAData = createSelector(
     (state) => state.HAKONIWAData,
     (HAKONIWAData) => ({
         HislandId: HAKONIWAData.islandId,
-        HislandPassword: HAKONIWAData.islandPassword,
         HislandName: HAKONIWAData.islandName,
         HcampId: HAKONIWAData.campId,
         HviewLastTime: HAKONIWAData.viewLastTime,

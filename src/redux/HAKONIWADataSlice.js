@@ -4,7 +4,6 @@ export const HAKONIWADataSlice = createSlice({
     name: "HAKONIWAData",
     initialState: {
         islandId: window.islandId,
-        islandPassword: window.islandPassword,
         islandName: window.islandName,
         campId: window.campId,
         viewLastTime: window.viewLastTime,
