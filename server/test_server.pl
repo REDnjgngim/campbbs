@@ -51,24 +51,33 @@ use utf8;
 
             is_valid_camp_id_check($campNo);
 
-            my ($log, $timeline);
-            my ($camp_log, $camp_timeline) = ("{}", "{}");
-            # 掲示板ログ・タイムラインが両方ある場合のみ
-            # ファイルが無い＝ログが無いなのでエラーは返さない
-            if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
-                my $log = read_file_with_lock($BBSLOG_FILEPATH);
-                my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
-
-                my $log_json = decode_json($log);
-                my $timeline_json = decode_json($timeline);
-
-                # 指定範囲のタイムラインを抽出
-                my @timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
-                $camp_timeline = encode_json(\@timeline_groups);
-                # タイムラインを基準に必要なメッセージを抽出
-                my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_groups);
-                $camp_log = encode_json(\@log_filtered);
+            if (!(-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH")) {
+                # 読み込むファイルが存在しないので作る
+                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json({"$campNo"}), ">");
+                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json({}), ">");
             }
+
+            # 掲示板ログ・タイムラインが両方ある場合のみ
+            my $log = read_file_with_lock($BBSLOG_FILEPATH);
+            my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
+
+            my $log_json = decode_json($log);
+            my $timeline_json = decode_json($timeline);
+
+            if(!(exists $log_json->{"$campNo"} && exists $timeline_json->{"$campNo"})){
+                # 初回読み込み時などで存在しない陣営idだった場合は新しく作る
+                $log_json->{"$campNo"} = [];
+                $timeline_json->{"$campNo"} = [];
+                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($log_json), ">");
+                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($timeline_json), ">");
+            }
+
+            # 指定範囲のタイムラインを抽出
+            my @timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
+            my $camp_timeline = encode_json(\@timeline_groups);
+            # タイムラインを基準に必要なメッセージを抽出
+            my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_groups);
+            my $camp_log = encode_json(\@log_filtered);
 
             # 出力
             print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
@@ -105,8 +114,7 @@ use utf8;
 
             is_valid_camp_id_check($campNo);
 
-            # 掲示板ログ・タイムラインが両方ある場合のみ
-            # ファイルが無い＝ログが無いなのでエラーは返さない
+            # 念の為ファイルの存在チェック
             if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
                 my $log = read_file_with_lock($BBSLOG_FILEPATH);
                 my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
@@ -310,7 +318,7 @@ use utf8;
             my ($filename) = @_;
             local $/; # 入力レコード区切りを無視
 
-            open my $fh, "<", $filename or die $!;
+            open my $fh, "<", $filename or handleException_exit("read_file_faild", $!);;
             flock($fh, 1); # 共有ロック
 
             my $content = <$fh>;
@@ -323,7 +331,7 @@ use utf8;
         sub write_file_with_lock {
             my ($filename, $content, $option) = @_;
 
-            open my $fh, $option, $filename or die $!;
+            open my $fh, $option, $filename or handleException_exit("write_file_faild", $!);
             flock($fh, 2); # 排他ロック
 
             print $fh $content;
@@ -335,7 +343,7 @@ use utf8;
         sub write_file_image {
             my ($filepath, $imageFilehandle) = @_;
 
-            open my $fh, '>', $filepath or die $!;
+            open my $fh, '>', $filepath or handleException_exit("write_file_image_faild", $!);
             flock($fh, 2); # 排他ロック
             binmode $fh;
 
