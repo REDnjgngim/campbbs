@@ -224,12 +224,14 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
     const messageBGColor = getMessageBGColor();
 
+    const indentCap = indent > 5 ? 5 : indent;
+
     return (
         <div
             className={`rounded-md ${messageBGColor} mr-auto mt-1 shadow`}
             style={{
-                width: `calc(100% - ${1 + indent}rem)`,
-                marginLeft: `${0.5 + indent}rem`,
+                width: `calc(100% - ${1 + indentCap}rem)`,
+                marginLeft: `${0.5 + indentCap}rem`,
             }}
         >
             <Mtitle />
