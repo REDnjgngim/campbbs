@@ -150,6 +150,9 @@ use utf8;
                 $newMessageForCamp->{"No"} = "$newNo";
                 $newMessageForCamp->{"writenTime"} = int(time());
 
+                # 文字数上限処理
+                truncateStrings($newMessageForCamp);
+
                 # 画像ファイル処理
                 saveImages($cgi, $newMessageForCamp, $campId);
 
@@ -184,6 +187,21 @@ use utf8;
                 }else{
                     # 新規投稿
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}})
+                }
+            }
+
+            sub truncateStrings {
+                my ($message) = @_;
+                my %MAX_LENGTH = (
+                    'title' => 50,
+                    'owner' => 20,
+                    'content' => 1000,
+                );
+
+                foreach my $key (keys %MAX_LENGTH) {
+                    if(length($message->{$key}) > $MAX_LENGTH{$key}){
+                        $message->{$key} = substr($message->{$key}, 0, $MAX_LENGTH{$key});
+                    }
                 }
             }
         }
