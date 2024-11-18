@@ -73,10 +73,10 @@ use utf8;
             }
 
             # 指定範囲のタイムラインを抽出
-            my @timeline_groups = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
-            my $camp_timeline = encode_json(\@timeline_groups);
+            my @timeline_threads = timeline_filtered($timeline_json->{$campNo}, $begin, $end);
+            my $camp_timeline = encode_json(\@timeline_threads);
             # タイムラインを基準に必要なメッセージを抽出
-            my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_groups);
+            my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_threads);
             my $camp_log = encode_json(\@log_filtered);
 
             # 出力
@@ -190,7 +190,7 @@ use utf8;
                     }
                     $current->{$newMessageForCamp->{"No"}} = {};
 
-                    # 返信したグループは一番新しくする
+                    # 返信したスレッドは一番新しくする
                     push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
                 }else{
                     # 新規投稿
@@ -286,7 +286,7 @@ use utf8;
                 delete $current->{$newMessage_json->{"No"}};
 
                 if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
-                    # グループの中身が空
+                    # スレッドの中身が空
                     splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
                 }
             }
@@ -370,14 +370,14 @@ use utf8;
         }
 
         sub log_filtered {
-            my ($log_array, $timeline_groups) = @_;
-            my @groupNos;
+            my ($log_array, $timeline_threads) = @_;
+            my @messageNos;
             # タイムラインからメッセージNoだけをまとめる
-            foreach my $timeline_group (@{$timeline_groups}){
-                push(@groupNos, extract_keys($timeline_group));
+            foreach my $timeline_thread (@{$timeline_threads}){
+                push(@messageNos, extract_keys($timeline_thread));
             }
             # 検索対象のNoをキーとしたハッシュを作成
-            my %search_hash = map { $_ => 1 } @groupNos;
+            my %search_hash = map { $_ => 1 } @messageNos;
             # 必要なメッセージだけ抽出
             my @log_filtered = grep { exists $search_hash{ $_->{"No"} } } @{$log_array};
 
