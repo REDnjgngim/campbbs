@@ -39,11 +39,11 @@ function App() {
 
     // 取得済みのメッセージ全更新
     const GET_TIMELINES = 10; // 1回に読み込む数
-    const hasGroupIndex = useSelector((state) => state.bbsTable.timeline.length);
+    const hasThreadIndex = useSelector((state) => state.bbsTable.timeline.length);
     const [trigger] = useLazyGetAllCampBbsTableQuery();
     const bbsTableFetch = () => {
         // エラーなどで0になっている場合は初期値にする
-        let getIndex = hasGroupIndex < GET_TIMELINES ? GET_TIMELINES : hasGroupIndex;
+        let getIndex = hasThreadIndex < GET_TIMELINES ? GET_TIMELINES : hasThreadIndex;
         trigger({ campId: HcampId, endIndex: getIndex }, false);
     };
 

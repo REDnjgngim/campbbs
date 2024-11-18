@@ -93,7 +93,7 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
         );
     }
 
-    let MessageArray = [];
+    let threadArray = [];
 
     const renderMessage = (messageData, depth, isFixed) => (
         <Message
@@ -110,7 +110,7 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
             const messageData = newbbsTable.log.find((message) => message.No === key);
             if (messageData) {
                 const message = renderMessage(messageData, depth, 0);
-                MessageArray[MessageArray.length - 1].push(message);
+                threadArray[threadArray.length - 1].push(message);
             }
             if (typeof timelineNode[key] === "object") {
                 addMessagesRecursively(timelineNode[key], depth + 1);
@@ -118,24 +118,24 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
         });
     };
 
-    newbbsTable.timeline.forEach((group) => {
-        MessageArray.push([]);
-        addMessagesRecursively(group);
+    newbbsTable.timeline.forEach((threadTree) => {
+        threadArray.push([]);
+        addMessagesRecursively(threadTree);
     });
 
     const importMessage = newbbsTable.log.find((message) => message.important === true);
     if (importMessage) {
-        MessageArray.unshift([renderMessage(importMessage, 0, 1)]);
+        threadArray.unshift([renderMessage(importMessage, 0, 1)]);
     }
 
     return (
         <>
-            {MessageArray.map((messageGroup, index) => (
+            {threadArray.map((thread, index) => (
                 <div
                     key={index}
                     className="mx-auto mt-4 w-11/12 rounded-sm border border-gray-300 bg-gray-200 p-1 shadow-sm ring-2 ring-gray-200 ring-offset-2"
                 >
-                    {messageGroup}
+                    {thread}
                 </div>
             ))}
         </>
