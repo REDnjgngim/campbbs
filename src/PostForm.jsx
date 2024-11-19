@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import InputMultiImageForm from "./InputMultiImageForm";
 import { useDispatch, useSelector } from "react-redux";
 import { formSave } from "./redux/formTypeParamSlice";
@@ -14,31 +14,52 @@ const SelectSaveform = createSelector(
     }),
 );
 
-export default function PostForm({ formType, MessageNo, messageSend }) {
+const FORM_HEADERNAME = {
+    new: "新規投稿",
+    reply: "返信",
+    edit: "編集モード",
+    diplomacy: "外交文書",
+};
+
+const FORM_BUTTONNAME = {
+    new: "投稿",
+    reply: "投稿",
+    edit: "編集",
+    diplomacy: "送信",
+};
+
+// 文字数上限
+const MAX_LENGTH = {
+    title: 50,
+    name: 20,
+    content: 1000,
+};
+
+export default function PostForm({ messageSend }) {
     const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
     const formData = useSelector(SelectSaveform);
     const dispatch = useDispatch();
+    const MessageNo = useSelector((state) => state.modalWindow.contentParam);
+    const formType = useSelector((state) => state.modalWindow.viewType);
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
-
-    // 文字数上限
-    const MAX_TITLE_LENGTH = 50;
-    const MAX_NAME_LENGTH = 20;
-    const MAX_CONTENT_LENGTH = 1000;
 
     useEffect(() => {
         setIsSubmitDisabled(!formData[formType].content);
     }, [formData, formType]);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        dispatch(
-            formSave({
-                formType,
-                formName: name,
-                formValue: value,
-            }),
-        );
-    };
+    const handleInputChange = useCallback(
+        (e) => {
+            const { name, value } = e.target;
+            dispatch(
+                formSave({
+                    formType,
+                    formName: name,
+                    formValue: value,
+                }),
+            );
+        },
+        [dispatch, formType],
+    );
 
     return (
         <div className="max-h-[90vh] basis-full" onClick={(e) => e.stopPropagation()}>
@@ -49,7 +70,7 @@ export default function PostForm({ formType, MessageNo, messageSend }) {
                     messageSend(e.target, formType);
                 }}
             >
-                <h1 className="mb-3 text-2xl font-bold">{formHeaderName(formType)}</h1>
+                <h1 className="mb-3 text-2xl font-bold">{FORM_HEADERNAME[formType]}</h1>
                 <input type="hidden" name="targetNo" value={MessageNo} hidden />
                 <input type="hidden" name="newNo" value={formType === "edit" ? MessageNo : "0"} hidden />
                 <input
@@ -59,7 +80,7 @@ export default function PostForm({ formType, MessageNo, messageSend }) {
                     placeholder="タイトル (省略可)"
                     className="mb-2 border p-2"
                     onChange={handleInputChange}
-                    maxLength={MAX_TITLE_LENGTH}
+                    maxLength={MAX_LENGTH.title}
                 />
                 <input
                     type="text"
@@ -68,7 +89,7 @@ export default function PostForm({ formType, MessageNo, messageSend }) {
                     placeholder="名前 (省略可)"
                     className="mb-2 border p-2"
                     onChange={handleInputChange}
-                    maxLength={MAX_NAME_LENGTH}
+                    maxLength={MAX_LENGTH.name}
                 />
                 <textarea
                     name="content"
@@ -77,7 +98,7 @@ export default function PostForm({ formType, MessageNo, messageSend }) {
                     value={formData[formType].content || ""}
                     style={{ color: formData[formType].color }}
                     onChange={handleInputChange}
-                    maxLength={MAX_CONTENT_LENGTH}
+                    maxLength={MAX_LENGTH.content}
                 />
                 {formType !== "edit" && <InputMultiImageForm />}
                 <div className="flex">
@@ -91,7 +112,7 @@ export default function PostForm({ formType, MessageNo, messageSend }) {
                             className={`m-2 rounded border-none bg-blue-600 px-8 py-4 text-xl font-bold text-white transition duration-100 ${isSubmitDisabled || isLoadingState ? "brightness-50" : "hover:brightness-110 active:scale-95 active:brightness-75"}`}
                             disabled={isSubmitDisabled || isLoadingState}
                         >
-                            {formButtonName(formType)}
+                            {FORM_BUTTONNAME[formType]}
                         </button>
                     </div>
                 </div>
@@ -100,7 +121,7 @@ export default function PostForm({ formType, MessageNo, messageSend }) {
     );
 }
 
-function SelectColor({ textColor, handleInputChange }) {
+const SelectColor = React.memo(function MemoizedSelectColor({ textColor, handleInputChange }) {
     const colors = [
         { value: "black", label: "黒" },
         { value: "maroon", label: "茶" },
@@ -130,9 +151,9 @@ function SelectColor({ textColor, handleInputChange }) {
             </select>
         </div>
     );
-}
+});
 
-function SelectCamp() {
+const SelectCamp = React.memo(function MemoizedSelectCamp() {
     const HcampLists = useSelector((state) => state.HAKONIWAData.campLists);
     const HcampId = useSelector((state) => state.HAKONIWAData.campId);
 
@@ -152,30 +173,4 @@ function SelectCamp() {
             </select>
         </div>
     );
-}
-
-function formHeaderName(formType) {
-    switch (formType) {
-        case "new":
-            return "新規投稿";
-        case "reply":
-            return "返信";
-        case "edit":
-            return "編集モード";
-        case "diplomacy":
-            return "外交文書";
-    }
-}
-
-function formButtonName(formType) {
-    switch (formType) {
-        case "new":
-            return "投稿";
-        case "reply":
-            return "投稿";
-        case "edit":
-            return "編集";
-        case "diplomacy":
-            return "送信";
-    }
-}
+});

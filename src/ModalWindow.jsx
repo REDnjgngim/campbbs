@@ -7,7 +7,6 @@ import { modalToggle } from "./redux/modalWindowSlice";
 export default function ModalWindow({ messageSend }) {
     const dispatch = useDispatch();
     const ModalContentType = useSelector((state) => state.modalWindow.viewType);
-    const ModalContentParam = useSelector((state) => state.modalWindow.contentParam);
     const [isOpen_animeClass, setIsOpen_animeClass] = useState(false);
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
@@ -33,10 +32,8 @@ export default function ModalWindow({ messageSend }) {
         >
             <div className="relative flex w-full max-w-4xl flex-col justify-center overflow-y-auto rounded p-5">
                 <div className="basis-auto">
-                    {ModalContentType === "image" && <ImageDisplay imgURL={ModalContentParam} />}
-                    {ModalContentType !== "image" && (
-                        <PostForm formType={ModalContentType} MessageNo={ModalContentParam} messageSend={messageSend} />
-                    )}
+                    {ModalContentType === "image" && <ImageDisplay />}
+                    {ModalContentType !== "image" && <PostForm messageSend={messageSend} />}
                 </div>
                 <div className="ml-auto">
                     <button className={`BATSU relative mt-2 ${buttonClass_anime}`} />
