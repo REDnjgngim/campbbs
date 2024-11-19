@@ -70,6 +70,15 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
         }
     }, [data, error, GET_TIMELINES]);
 
+    // スレッドフィルタ処理
+    const filterOptions = ["all_thread", "ownCamp_thread", "diplomacy_thread"]; // フィルタの選択肢
+    const FILTER_BUTTON_NAME = ["全て表示", "自陣営のみ", "外交文書のみ"]; // フィルタの選択肢
+    const [filterIndex, setFilterIndex] = useState(0); // 現在のフィルタインデックスを管理
+
+    const toggleFilter = () => {
+        setFilterIndex((prevIndex) => (prevIndex + 1) % filterOptions.length); // インデックスを更新
+    };
+
     if (newbbsTable.log.length === 0) {
         // 初期読み込み
         return (
@@ -130,14 +139,44 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
 
     return (
         <>
-            {threadArray.map((thread, index) => (
-                <div
-                    key={index}
-                    className="mx-auto mt-4 w-11/12 rounded-sm border border-gray-300 bg-gray-200 p-1 shadow-sm ring-2 ring-gray-200 ring-offset-2"
+            <div className="text-right">
+                <button
+                    onClick={toggleFilter}
+                    className={`mr-8 w-36 rounded-sm border px-4 py-2 shadow-sm ${filterOptions[filterIndex] === "all_thread" ? "bg-gray-100 ring-2 ring-gray-200" : "bg-blue-100 font-bold ring-2 ring-blue-200"}`}
                 >
-                    {thread}
-                </div>
-            ))}
+                    {FILTER_BUTTON_NAME[filterIndex]}
+                </button>
+            </div>
+            {threadArray.map((thread, index) => {
+                // スレッドの中の先頭で判別
+                const firstMessage = thread[0];
+
+                const targetCampIdsLength = firstMessage.props.messageData.targetCampIds.length;
+
+                // フィルタリング処理
+                const shouldDisplay = (() => {
+                    if (filterOptions[filterIndex] === "diplomacy_thread") {
+                        return targetCampIdsLength > 0;
+                    } else if (filterOptions[filterIndex] === "ownCamp_thread") {
+                        return targetCampIdsLength === 0;
+                    }
+                    return true; // フィルタ無しの場合は全て表示
+                })();
+
+                // フィルタONで表示しない場合は何も表示しない
+                if (!shouldDisplay) {
+                    return null;
+                }
+
+                return (
+                    <div
+                        key={index}
+                        className="mx-auto mt-4 w-11/12 rounded-sm border border-gray-300 bg-gray-200 p-1 shadow-sm ring-2 ring-gray-200 ring-offset-2"
+                    >
+                        {thread}
+                    </div>
+                );
+            })}
         </>
     );
 }
