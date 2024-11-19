@@ -1,7 +1,7 @@
 import React from "react";
 import "./App.css";
 import "./index.css";
-import BbsMessages from "./BbsMessages.jsx";
+import BbsMessages from "./BbsThreads.jsx";
 import FixedFooterButtons from "./FixedFooterButtons.jsx";
 import ModalWindow from "./ModalWindow";
 import Toast from "./Toast";
