@@ -12,6 +12,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@egoist/tailwindcss-icons": "^1.8.1",
     "@reduxjs/toolkit": "^2.2.7",
     "axios": "^1.7.7",
     "react": "^18.3.1",
@@ -20,6 +21,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@iconify/json": "^2.2.273",
+    "@iconify/tailwind": "^1.1.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",

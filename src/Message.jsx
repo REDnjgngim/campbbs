@@ -36,7 +36,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
 
     const dispatch = useDispatch();
-    const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
+    const buttonClass_anime = "transition duration-100 hover:brightness-150 active:brightness-75 active:scale-95";
 
     const isDeletedMessage = writenTurn === -1;
     const isOwnMessage = islandId === HislandId;
@@ -145,7 +145,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                 <div className="m-0.5 flex items-end pb-1">
                     {!isFixed && (
                         <button
-                            className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-blue-600 p-1.5 text-white ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                            className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
                             disabled={isLoadingState}
                             onClick={() => {
                                 dispatch(
@@ -162,13 +162,13 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                 );
                             }}
                         >
-                            返信
+                            <span className="i-tabler-message-dots align-bottom text-2xl text-blue-900"></span>
                         </button>
                     )}
                     {isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
-                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-green-600 p-1.5 text-white ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                                className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
                                 disabled={isLoadingState}
                                 onClick={() => {
                                     dispatch(
@@ -186,24 +186,26 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                     );
                                 }}
                             >
-                                編集
+                                <span className="i-tabler-pencil align-bottom text-2xl text-blue-900"></span>
                             </button>
                             <button
-                                className={`m-0.5 ml-1 whitespace-nowrap rounded border bg-red-600 p-1.5 text-white ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                                className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
                                 disabled={isLoadingState}
                                 onClick={() => messageSend(messageData, "delete")}
                             >
-                                削除
+                                <span className="i-tabler-trash align-bottom text-2xl text-red-600"></span>
                             </button>
                         </>
                     )}
                     <button
-                        className={`m-0.5 whitespace-nowrap rounded-full border border-dashed border-slate-500 bg-white p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                        className={`m-0.5 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
                         disabled={isLoadingState}
                         onClick={() => messageSend(messageData, "pin")}
                     >
-                        {isImportant && "解除"}
-                        {!isImportant && "固定"}
+                        {isImportant && (
+                            <span className="i-tabler-pinned-off align-bottom text-2xl text-blue-900"></span>
+                        )}
+                        {!isImportant && <span className="i-tabler-pin align-bottom text-2xl text-blue-700"></span>}
                     </button>
                     <span className="ml-auto mr-1">
                         [ ターン{writenTurn} ] {dateTime}
@@ -228,7 +230,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
     return (
         <div
-            className={`rounded-md ${messageBGColor} mr-auto mt-1 shadow`}
+            className={`${messageBGColor} mr-auto mt-1 shadow ${isImportant ? "" : "rounded-md"}`}
             style={{
                 width: `calc(100% - ${1 + indentCap}rem)`,
                 marginLeft: `${0.5 + indentCap}rem`,
