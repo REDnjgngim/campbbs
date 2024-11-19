@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from "react";
 
-export default function InputMultiImageForm() {
+const InputMultiImageForm = React.memo(function MemoizedInputMultiImageForm() {
     const inputRef = useRef(null);
     const [inputFiles, setInputFiles] = useState(null);
 
@@ -58,4 +58,6 @@ export default function InputMultiImageForm() {
             </div>
         </div>
     );
-}
+});
+
+export default InputMultiImageForm;
