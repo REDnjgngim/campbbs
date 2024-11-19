@@ -34,7 +34,6 @@ function App() {
     const HAKONIWAData = useSelector(selectHAKONIWAData);
     const newbbsTable = useSelector(selectNewbbsTable);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
-    const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
 
     // 取得済みのメッセージ全更新
@@ -103,7 +102,7 @@ function App() {
             <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
             <BbsMessages messageSend={messageSend} GET_TIMELINES={GET_TIMELINES} />
             <FixedFooterButtons fetchQuery={bbsTableFetch} />
-            {isModalOpen && <ModalWindow messageSend={messageSend} />}
+            <ModalWindow messageSend={messageSend} />
             <Toast />
         </div>
     );
