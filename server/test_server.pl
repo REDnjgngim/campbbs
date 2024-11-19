@@ -64,10 +64,8 @@ use utf8;
             my $log_json = decode_json($log);
             my $timeline_json = decode_json($timeline);
 
-            if(!(exists $log_json->{"$campNo"} && exists $timeline_json->{"$campNo"})){
+            if(!(setIfUndefined_bbsTable_campId($log_json, "$campNo") && setIfUndefined_bbsTable_campId($timeline_json, "$campNo"))){
                 # 初回読み込み時などで存在しない陣営idだった場合は新しく作る
-                $log_json->{"$campNo"} = [];
-                $timeline_json->{"$campNo"} = [];
                 write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($log_json), ">");
                 write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($timeline_json), ">");
             }
@@ -145,6 +143,8 @@ use utf8;
             # 外交文書を考慮して陣営ごとに処理
             foreach my $campId (@campIds){
                 is_valid_camp_id_check($campId);
+                setIfUndefined_bbsTable_campId($bbsTable_log, "$campId");
+                setIfUndefined_bbsTable_campId($bbsTable_timeline, "$campId");
 
                 my $newMessageForCamp = { %$newMessage_json };
                 # log追加処理
@@ -488,6 +488,15 @@ use utf8;
             unless($isValid){
                 handleException_exit("invalid_camp_id", $campId);
             }
+        }
+
+        sub setIfUndefined_bbsTable_campId {
+            my ($bbsTable, $campId) = @_;
+            unless(exists $bbsTable->{$campId}){
+                $bbsTable->{$campId} = [];
+                return 0;
+            }
+            return 1;
         }
 
         sub existing_messageNo {
