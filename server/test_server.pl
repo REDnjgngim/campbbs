@@ -20,13 +20,6 @@ use utf8;
         my ($self, $cgi) = @_;
 
         my $method = $cgi->request_method();
-        my $isFaild = 0;
-
-        # ヘッダー
-        print "HTTP/1.1 200 OK\n";
-        print "Access-Control-Allow-Origin: *\n";
-        print "Access-Control-Allow-Headers: Content-Type\n";
-        print "Content-Type: application/json\n\n";
 
         # 汎用的な処理
         my %routes = (
@@ -36,7 +29,13 @@ use utf8;
 
         if (exists $routes{$method}) {
             my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
-            $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
+            my ($log, $timeline) = $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
+            # ヘッダー
+            print "HTTP/1.1 200 OK\n";
+            print "Access-Control-Allow-Origin: *\n";
+            print "Access-Control-Allow-Headers: Content-Type\n";
+            print "Content-Type: application/json\n\n";
+            print "{ \"log\": $log, \"timeline\": $timeline }" if($method eq "GET");
         } else {
             print "HTTP/1.1 404 Not Found\n";
             print "Content-Type: text/plain\n\n";
@@ -78,7 +77,7 @@ use utf8;
             my $camp_log = encode_json(\@log_filtered);
 
             # 出力
-            print "{ \"log\": $camp_log, \"timeline\": $camp_timeline }";
+            return ($camp_log, $camp_timeline);
 
             # 全てのキーを抽出する再帰関数
             sub extract_keys {
@@ -140,6 +139,9 @@ use utf8;
                 existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"parentId"});
             }
 
+            # 画像を先に処理(外交文書に添付した画像は全陣営共通のファイル名を参照することになる)
+            my ($validImages, $imageFileNames) = checkAndSet_images($cgi, $newMessage_json);
+
             # 外交文書を考慮して陣営ごとに処理
             foreach my $campId (@campIds){
                 is_valid_camp_id_check($campId);
@@ -160,9 +162,6 @@ use utf8;
 
                 # 文字数上限処理
                 truncateStrings($newMessageForCamp);
-
-                # 画像ファイル処理
-                saveImages($cgi, $newMessageForCamp, $campId);
 
                 # log追加
                 push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
@@ -196,6 +195,13 @@ use utf8;
                     # 新規投稿
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}});
                 }
+            }
+
+            # 最後に画像を保存
+            my $imagePATH = "../public/campBbsData/image";
+            for(my $i = 0; $i <= $#{$validImages}; $i++){
+                my $fileName = $imageFileNames->[$i];
+                move($validImages->[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_failed", $!);
             }
 
             sub truncateStrings {
@@ -249,6 +255,11 @@ use utf8;
                 "important" => 1 == 0,
                 "images" => [],
             };
+
+            if($#{$editMessage->{'targetCampIds'}} >= 0){
+                # 外交文書は削除不可
+                handleException_exit("diplomacy_message_is_not_deletable", $editMessage->{'No'});
+            }
 
             if($#{$editMessage->{'images'}} >= 0){
                 # 画像削除
@@ -391,9 +402,8 @@ use utf8;
             return @log_filtered;
         }
 
-        sub saveImages {
-            my ($cgi, $newMessageForCamp, $campId) = @_;
-            my $imagePATH = "../public/campBbsData/image";
+        sub checkAndSet_images {
+            my ($cgi, $newMessage_json) = @_;
             my @imageFilehandles = $cgi->upload("images");
             my (@validImages, @imageFileNames);
 
@@ -412,19 +422,19 @@ use utf8;
                     my $fileName = setFileName($extension);
                     push(@imageFileNames, $fileName);
                     # 画像の状態をチェック
-                    my $validImage = uploadImage_regulation($imageFilehandle, $extension, $campId);
+                    my $validImage = uploadImage_regulation($imageFilehandle, $extension);
                     push(@validImages, $validImage);
                 }
                 last if($index == 1); # 画像は2枚まで
             }
 
-            # 全ての画像が問題なかったら保存
-            for(my $i = 0; $i <= $#validImages; $i++){
+            # 処理した画像ファイル名を格納
+            for(my $i = 0; $i <= $#imageFileNames; $i++){
                 my $fileName = $imageFileNames[$i];
-                push(@{$newMessageForCamp->{"images"}}, $fileName);
-                move($validImages[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
+                push(@{$newMessage_json->{"images"}}, $fileName);
             }
 
+            return (\@validImages, \@imageFileNames);
 
             sub setFileName {
                 my ($extension) = @_;
@@ -436,7 +446,7 @@ use utf8;
         }
 
         sub uploadImage_regulation {
-            my ($imageFilehandle, $extension, $campId) = @_;
+            my ($imageFilehandle, $extension) = @_;
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
 
             my ($tmp_fh, $tmp_filename) = tempfile(SUFFIX => '.' . $extension);
@@ -449,7 +459,7 @@ use utf8;
                 if ($file_size > $MAX_SIZE_MB) {
                     close $tmp_fh;
                     unlink $tmp_filename;
-                    handleException_exit("image_save_failed_size_over_messageCampId_$campId");
+                    handleException_exit("image_save_failed_size_over");
                 }
                 print $tmp_fh $buffer;
             }
@@ -457,12 +467,12 @@ use utf8;
 
             if(my $problem = validate_image_integrity($tmp_filename)){
                 unlink $tmp_filename;
-                handleException_exit("image_save_failed_invalid_image_messageCampId_$campId", $problem);
+                handleException_exit("image_save_failed_invalid_image", $problem);
             }
 
             my $processed_tmp_filename = "$tmp_filename-processed";
             if ( my $error_code = normalize_image($tmp_filename, $processed_tmp_filename) ) {
-                handleException_exit("image_save_failed_ImageMagick_command_failed_messageCampId_$campId", $error_code);
+                handleException_exit("image_save_failed_ImageMagick_command_failed", $error_code);
             }
 
             # 一時ファイルを削除
@@ -528,6 +538,8 @@ use utf8;
             my $localtime = scalar localtime;
             my $description = "[$localtime] ${error_message}: [$error_log] \n";
             write_file_with_lock("./error_log.txt", $description, ">>");
+            print "HTTP/1.1 400 Bad Request\n";
+            print "Content-Type: text/plain\n\n";
             print "Bad Request";
             die;
         }
