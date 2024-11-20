@@ -20,9 +20,10 @@ use utf8;
         my ($self, $cgi) = @_;
 
         my $method = $cgi->request_method();
+        my $isFaild = 0;
 
         # ヘッダー
-        print "HTTP/1.0 200 OK\n";
+        print "HTTP/1.1 200 OK\n";
         print "Access-Control-Allow-Origin: *\n";
         print "Access-Control-Allow-Headers: Content-Type\n";
         print "Content-Type: application/json\n\n";
@@ -37,18 +38,23 @@ use utf8;
             my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
             $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
         } else {
-            print "HTTP/1.0 404 Not Found\n";
+            print "HTTP/1.1 404 Not Found\n";
             print "Content-Type: text/plain\n\n";
             print "Not Found";
         }
+
+        return; # 終了
 
         sub get_api {
             my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
             my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
+            is_valid_camp_id_check($campNo);
+
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
             # 掲示板ログ・タイムラインが両方ある場合のみ
+            # ファイルが無い＝ログが無いなのでエラーは返さない
             if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
                 my $log = read_file_with_lock($BBSLOG_FILEPATH);
                 my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
@@ -96,7 +102,11 @@ use utf8;
 
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
+
+            is_valid_camp_id_check($campNo);
+
             # 掲示板ログ・タイムラインが両方ある場合のみ
+            # ファイルが無い＝ログが無いなのでエラーは返さない
             if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
                 my $log = read_file_with_lock($BBSLOG_FILEPATH);
                 my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
@@ -104,13 +114,13 @@ use utf8;
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                my $isSuccess = $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
+                $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log));
-                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline));
+                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log), ">");
+                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
             }
         }
 
@@ -118,10 +128,16 @@ use utf8;
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
-            my $imagePATH = "../public/campBbsData/image";
 
-            # 陣営ごとに処理
+            if($newMessage_json->{"parentId"}){
+                # 返信時は先に返信先のメッセージがあるかだけチェック
+                existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"parentId"});
+            }
+
+            # 外交文書を考慮して陣営ごとに処理
             foreach my $campId (@campIds){
+                is_valid_camp_id_check($campId);
+
                 my $newMessageForCamp = { %$newMessage_json };
                 # log追加処理
                 my $newNo = 0;
@@ -135,29 +151,15 @@ use utf8;
                 $newMessageForCamp->{"writenTime"} = int(time());
 
                 # 画像ファイル処理
-                my @imageFilehandles = $cgi->upload("images");
-                foreach my $index (0..$#imageFilehandles) {
-                    my $imageFilehandle = $imageFilehandles[$index];
-                    if (defined $imageFilehandle) {
-                        # 拡張子だけ取得
-                        $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
-                        my $extension = $1;
-                        my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
-                        my $fileName = "${randomString}.${extension}";
-                        uploadImage_regulation($imageFilehandle, $fileName);
-                        push(@{$newMessageForCamp->{"images"}}, $fileName);
-                    }
-                    last if($index == 1); # 画像は2枚まで
-                }
+                saveImages($cgi, $newMessageForCamp, $campId);
 
                 # log追加
                 push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
 
                 # timeline追加処理
                 my $current = $bbsTable_timeline->{$campId};
+                my ($treePath, $index) = ("", -1);
                 if($newMessageForCamp->{"parentId"}){
-                    # 返信
-                    my ($treePath, $index) = ("", -1);
                     # 階層を辿る
                     for (my $i = 0; $i <= $#{$current}; $i++) {
                         $treePath = timeline_Index_Recursively($current->[$i], $newMessageForCamp->{"parentId"});
@@ -166,6 +168,10 @@ use utf8;
                             last;
                         }
                     }
+                }
+
+                if($index > -1){
+                    # 返信
                     my @pathArray = split(/,/, $treePath);
                     $current = $current->[$index]; # 最初のパス
                     for (my $i = 0; $i <= $#pathArray; $i++) {
@@ -180,84 +186,73 @@ use utf8;
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}})
                 }
             }
-
-            return 1;
         }
 
         sub post_editMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # PUT
-            my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
-            if($index > -1){
-                # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
-                if($newMessage_json->{"important"}){
-                    my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
-                    $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
-                }
+            my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
 
-                my $editMessage = $bbsTable_log->{$campNo}[$index];
-                foreach my $key (keys %{$newMessage_json}) {
-                    next if($key eq "No");
-                    $editMessage->{$key} = $newMessage_json->{$key};
-                }
-                return 1;
+            # 固定メッセージの場合はメッセージ固定中でも他を固定ができるので、先に既に固定しているメッセージをfalseにする
+            if($newMessage_json->{"important"}){
+                my $important_index = (grep { $bbsTable_log->{$campNo}[$_]->{"important"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
+                $bbsTable_log->{$campNo}[$important_index]->{"important"} = 1 == 0;
             }
-            return 0;
+
+            my $editMessage = $bbsTable_log->{$campNo}[$messageIndex];
+            foreach my $key (keys %{$newMessage_json}) {
+                next if($key eq "No");
+                $editMessage->{$key} = $newMessage_json->{$key};
+            }
         }
 
         sub post_deleteMessage{
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
             # DELETE
+            my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
+
             # log削除
-            my $index = (grep { $bbsTable_log->{$campNo}[$_]->{"No"} eq $newMessage_json->{"No"} } 0..$#{$bbsTable_log->{$campNo}})[0] // -1;
-            if($index > -1){
-                # log削除
-                my $editMessage = $bbsTable_log->{$campNo}[$index];
-                my $deleteMessage = {
-                    "title" => "このメッセージは削除されました",
-                    "owner" => "",
-                    "islandName" => "",
-                    "content" => "",
-                    "writenTurn" => -1,
-                    "contentColor" => "",
-                    "important" => 1 == 0,
-                    "images" => [],
-                };
-                foreach my $key (keys %{$deleteMessage}) {
-                    next if($key eq "No");
-                    $editMessage->{$key} = $deleteMessage->{$key};
-                }
-
-                # timeline削除
-                my $current = $bbsTable_timeline->{$campNo};
-                my ($treePath, $index) = ("", -1);
-                for (my $i = 0; $i <= $#{$current}; $i++) {
-                    $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
-                    if($treePath ne ""){
-                        $index = $i;
-                        last;
-                    }
-                }
-                if($treePath ne ""){
-                    my @pathArray = split(/,/, $treePath);
-                    $current = $current->[$index]; # 最初のパス
-                    for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
-                        $current = $current->{$pathArray[$i]}; # パスをたどる
-                    }
-                    # 子にメッセージがなかったら削除可能
-                    if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
-                        delete $current->{$newMessage_json->{"No"}};
-
-                        if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
-                            # グループの中身が空
-                            splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
-                        }
-                    }
-                }
-
-                return 1;
+            my $editMessage = $bbsTable_log->{$campNo}[$messageIndex];
+            my $deleteMessage = {
+                "title" => "このメッセージは削除されました",
+                "owner" => "",
+                "islandName" => "",
+                "content" => "",
+                "writenTurn" => -1,
+                "contentColor" => "",
+                "important" => 1 == 0,
+                "images" => [],
+            };
+            foreach my $key (keys %{$deleteMessage}) {
+                next if($key eq "No");
+                $editMessage->{$key} = $deleteMessage->{$key};
             }
-            return 0;
+
+            # timeline削除
+            my $current = $bbsTable_timeline->{$campNo};
+            my ($treePath, $index) = ("", -1);
+            for (my $i = 0; $i <= $#{$current}; $i++) {
+                $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
+                if($treePath ne ""){
+                    $index = $i;
+                    last;
+                }
+            }
+
+            my @pathArray = split(/,/, $treePath);
+            $current = $current->[$index]; # 最初のパス
+            for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
+                $current = $current->{$pathArray[$i]}; # パスをたどる
+            }
+            # 子にメッセージがなかったら削除可能
+            if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
+                delete $current->{$newMessage_json->{"No"}};
+
+                if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
+                    # グループの中身が空
+                    splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
+                }
+            }
         }
 
         sub timeline_Index_Recursively {
@@ -297,9 +292,9 @@ use utf8;
         }
 
         sub write_file_with_lock {
-            my ($filename, $content) = @_;
+            my ($filename, $content, $option) = @_;
 
-            open my $fh, ">", $filename or die $!;
+            open my $fh, $option, $filename or die $!;
             flock($fh, 2); # 排他ロック
 
             print $fh $content;
@@ -352,13 +347,55 @@ use utf8;
             return @log_filtered;
         }
 
-        sub uploadImage_regulation {
-            my ($imageFilehandle, $upload_fileName) = @_;
+        sub saveImages {
+            my ($cgi, $newMessageForCamp, $campId) = @_;
             my $imagePATH = "../public/campBbsData/image";
-            my $full_path = "$imagePATH/$upload_fileName";
+            my @imageFilehandles = $cgi->upload("images");
+            my (@validImages, @imageFileNames);
+
+            if($#imageFilehandles == -1){
+                # 添付画像なし
+                return;
+            }
+
+            foreach my $index (0..$#imageFilehandles) {
+                my $imageFilehandle = $imageFilehandles[$index];
+                if (defined $imageFilehandle) {
+                    # 拡張子だけ先に抽出
+                    $cgi->uploadInfo($imageFilehandle)->{"Content-Disposition"} =~ /filename=".+\.(.+)"$/;
+                    my $extension = $1;
+                    # ファイル名を格納
+                    my $fileName = setFileName($extension);
+                    push(@imageFileNames, $fileName);
+                    # 画像の状態をチェック
+                    my $validImage = uploadImage_regulation($imageFilehandle, $extension, $campId);
+                    push(@validImages, $validImage);
+                }
+                last if($index == 1); # 画像は2枚まで
+            }
+
+            # 全ての画像が問題なかったら保存
+            for(my $i = 0; $i <= $#validImages; $i++){
+                my $fileName = $imageFileNames[$i];
+                push(@{$newMessageForCamp->{"images"}}, $fileName);
+                move($validImages[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_fale_failed_messageCampId_$campId", $!);
+            }
+
+
+            sub setFileName {
+                my ($extension) = @_;
+                my $randomString = join '', map { chr(int(rand(26)) + (int(rand(2)) ? 65 : 97)) } 1..12;
+                my $fileName = "${randomString}.${extension}";
+
+                return $fileName;
+            }
+        }
+
+        sub uploadImage_regulation {
+            my ($imageFilehandle, $extension, $campId) = @_;
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
 
-            my ($tmp_fh, $tmp_filename) = tempfile();
+            my ($tmp_fh, $tmp_filename) = tempfile(SUFFIX => '.' . $extension);
             binmode $tmp_fh;  # 一時ファイルをバイナリモードで開く
 
             # ファイルハンドルから一時ファイルに書き込み
@@ -368,7 +405,7 @@ use utf8;
                 if ($file_size > $MAX_SIZE_MB) {
                     close $tmp_fh;
                     unlink $tmp_filename;
-                    die "image size over\n";
+                    handleException_exit("image_save_failed_size_over_messageCampId_$campId");
                 }
                 print $tmp_fh $buffer;
             }
@@ -376,18 +413,18 @@ use utf8;
 
             if(my $problem = validate_image_integrity($tmp_filename)){
                 unlink $tmp_filename;
-                die $problem;
+                handleException_exit("image_save_failed_invalid_image_messageCampId_$campId", $problem);
             }
 
             my $processed_tmp_filename = "$tmp_filename-processed";
             if ( my $error_code = normalize_image($tmp_filename, $processed_tmp_filename) ) {
-                die "ImageMagick command failed with return code: $error_code";
+                handleException_exit("image_save_failed_ImageMagick_command_failed_messageCampId_$campId", $error_code);
             }
-
-            move($processed_tmp_filename, $full_path) or die "Failed to move processed file: $!";
 
             # 一時ファイルを削除
             unlink $tmp_filename;
+
+            return $processed_tmp_filename;
 
             sub normalize_image {
                 my ($tmp_filename, $processed_tmp_filename) = @_;
@@ -396,12 +433,50 @@ use utf8;
                 # ImageMagickコマンドセット
                 my $magick_cmd = "\"$ImageMagickPATH\" $tmp_filename";
                 $magick_cmd .= " +repage -auto-orient +repage";  # 画像の回転を補正
-                $magick_cmd .= " -colorspace sRGB";  # sRGBに変換
                 $magick_cmd .= " -strip";  # メタデータを削除
                 $magick_cmd .= " \"$processed_tmp_filename\"";  # 一時ファイルに出力
 
                 return system($magick_cmd);
             }
+        }
+
+        sub is_valid_camp_id_check {
+            my ($campId) = @_;
+            my $campIdsFile = './campIds.csv';
+            my $campIdsContent = read_file_with_lock($campIdsFile);
+            my @campIds = split (/,/, $campIdsContent);
+
+            my $isValid = grep { $_ == $campId } @campIds;
+
+            unless($isValid){
+                handleException_exit("invalid_camp_id", $campId);
+            }
+        }
+
+        sub existing_messageNo {
+            my ($bbsTable_campLog, $message_targetNo) = @_;
+
+            my $index = (grep { $bbsTable_campLog->[$_]{"No"} eq $message_targetNo } 0..$#{$bbsTable_campLog})[0] // -1;
+
+            if($index == -1){
+                handleException_exit("invalid_messageNo", $message_targetNo);
+            }
+
+            if($index > -1 && $bbsTable_campLog->[$index]{"writenTurn"} == -1){
+                handleException_exit("deleted_messageNo", $message_targetNo);
+            }
+
+            return $index;
+        }
+
+        sub handleException_exit {
+            my ($error_message, $error_log) = @_;
+
+            my $localtime = scalar localtime;
+            my $description = "[$localtime] ${error_message}: [$error_log] \n";
+            write_file_with_lock("./error_log.txt", $description, ">>");
+            print "Bad Request";
+            die;
         }
     }
 }
