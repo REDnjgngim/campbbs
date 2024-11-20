@@ -46,7 +46,7 @@ function App() {
         trigger({ campId: HcampId, endIndex: getIndex }, false);
     };
 
-    const messageSend = (form, formType) => {
+    const messageSend = async (form, formType) => {
         let updateType = formType;
         if (updateType === "diplomacy") updateType = "new"; // 外交文書はnewと同じ扱い
         let createMessage;
@@ -82,7 +82,7 @@ function App() {
         formData.append("newMessage", JSON.stringify(createMessage));
 
         // API通信
-        updateCampBbsTable({
+        const result = await updateCampBbsTable({
             campId: HcampId,
             subMethod: updateType,
             formData,
@@ -90,7 +90,9 @@ function App() {
             endIndex: newbbsTable.timeline.length,
         });
 
-        bbsTableFetch();
+        if (!result.error) {
+            bbsTableFetch();
+        }
 
         return false;
     };
