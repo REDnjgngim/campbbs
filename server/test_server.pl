@@ -395,7 +395,7 @@ use utf8;
             my ($imageFilehandle, $extension, $campId) = @_;
             my $MAX_SIZE_MB = 3 * 1024 * 1024; # 3MB
 
-            my ($tmp_fh, $tmp_filename) = tempfile(SUFFIX => $extension);
+            my ($tmp_fh, $tmp_filename) = tempfile(SUFFIX => '.' . $extension);
             binmode $tmp_fh;  # 一時ファイルをバイナリモードで開く
 
             # ファイルハンドルから一時ファイルに書き込み
