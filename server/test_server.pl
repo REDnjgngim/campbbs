@@ -194,7 +194,7 @@ use utf8;
                     push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
                 }else{
                     # 新規投稿
-                    push(@{$current}, {$newMessageForCamp->{"No"} => {}})
+                    push(@{$current}, {$newMessageForCamp->{"No"} => {}});
                 }
             }
 
@@ -375,6 +375,13 @@ use utf8;
             # タイムラインからメッセージNoだけをまとめる
             foreach my $timeline_thread (@{$timeline_threads}){
                 push(@messageNos, extract_keys($timeline_thread));
+            }
+            # 固定メッセージは無条件で入れる
+            foreach my $message (@{$log_array}) {
+                if ($message->{'important'}) {
+                    push(@messageNos, $message->{"No"});
+                    last;
+                }
             }
             # 検索対象のNoをキーとしたハッシュを作成
             my %search_hash = map { $_ => 1 } @messageNos;
