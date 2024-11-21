@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 export const modalWindowSlice = createSlice({
     name: "modalWindow",
     initialState: {
+        // viewType = close or image or formType(new,reply,edit diplomacy)
         viewType: "close",
         // contentParam = messageNo or imgURL
         contentParam: "",

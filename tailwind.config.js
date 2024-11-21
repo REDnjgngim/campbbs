@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import { iconsPlugin, getIconCollections } from "@egoist/tailwindcss-icons";
+
 export default {
     content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
     theme: {
@@ -19,5 +21,10 @@ export default {
     future: {
         hoverOnlyWhenSupported: true,
     },
-    plugins: [],
+    plugins: [
+        iconsPlugin({
+            // https://icones.js.org/
+            collections: getIconCollections(["tabler"]),
+        }),
+    ],
 };

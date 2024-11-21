@@ -1,7 +1,7 @@
 import React from "react";
 import "./App.css";
 import "./index.css";
-import BbsMessages from "./BbsMessages.jsx";
+import BbsMessages from "./BbsThreads.jsx";
 import FixedFooterButtons from "./FixedFooterButtons.jsx";
 import ModalWindow from "./ModalWindow";
 import Toast from "./Toast";
@@ -14,7 +14,6 @@ const selectHAKONIWAData = createSelector(
     (state) => state.HAKONIWAData,
     (HAKONIWAData) => ({
         HislandId: HAKONIWAData.islandId,
-        HislandPassword: HAKONIWAData.islandPassword,
         HislandName: HAKONIWAData.islandName,
         HcampId: HAKONIWAData.campId,
         HviewLastTime: HAKONIWAData.viewLastTime,
@@ -35,20 +34,19 @@ function App() {
     const HAKONIWAData = useSelector(selectHAKONIWAData);
     const newbbsTable = useSelector(selectNewbbsTable);
     const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
-    const isModalOpen = useSelector((state) => state.modalWindow.viewType !== "close");
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
 
     // 取得済みのメッセージ全更新
     const GET_TIMELINES = 10; // 1回に読み込む数
-    const hasGroupIndex = useSelector((state) => state.bbsTable.timeline.length);
+    const hasThreadIndex = useSelector((state) => state.bbsTable.timeline.length);
     const [trigger] = useLazyGetAllCampBbsTableQuery();
     const bbsTableFetch = () => {
         // エラーなどで0になっている場合は初期値にする
-        let getIndex = hasGroupIndex < GET_TIMELINES ? GET_TIMELINES : hasGroupIndex;
+        let getIndex = hasThreadIndex < GET_TIMELINES ? GET_TIMELINES : hasThreadIndex;
         trigger({ campId: HcampId, endIndex: getIndex }, false);
     };
 
-    const messageSend = (form, formType) => {
+    const messageSend = async (form, formType) => {
         let updateType = formType;
         if (updateType === "diplomacy") updateType = "new"; // 外交文書はnewと同じ扱い
         let createMessage;
@@ -84,7 +82,7 @@ function App() {
         formData.append("newMessage", JSON.stringify(createMessage));
 
         // API通信
-        updateCampBbsTable({
+        const result = await updateCampBbsTable({
             campId: HcampId,
             subMethod: updateType,
             formData,
@@ -92,7 +90,9 @@ function App() {
             endIndex: newbbsTable.timeline.length,
         });
 
-        bbsTableFetch();
+        if (!result.error) {
+            bbsTableFetch();
+        }
 
         return false;
     };
@@ -104,7 +104,7 @@ function App() {
             <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
             <BbsMessages messageSend={messageSend} GET_TIMELINES={GET_TIMELINES} />
             <FixedFooterButtons fetchQuery={bbsTableFetch} />
-            {isModalOpen && <ModalWindow messageSend={messageSend} />}
+            <ModalWindow messageSend={messageSend} />
             <Toast />
         </div>
     );
