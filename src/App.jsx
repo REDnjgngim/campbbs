@@ -97,7 +97,8 @@ function App() {
         return false;
     };
 
-    const LBBSTITLE = `${HcampLists[HcampId].mark}${HcampLists[HcampId].name}陣営掲示板`;
+    const index = HcampLists.findIndex((list) => list.id === HcampId);
+    const LBBSTITLE = `${HcampLists[index].mark}${HcampLists[index].name} 掲示板`;
 
     return (
         <div className="App">

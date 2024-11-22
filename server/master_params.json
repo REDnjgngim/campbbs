@@ -1,0 +1,8 @@
+{
+    "islandTurn": 67,
+    "camp": [
+        { "id": 1, "name": "魏", "mark": "∀" },
+        { "id": 2, "name": "呉", "mark": "Ψ" },
+        { "id": 3, "name": "蜀", "mark": "Ж" }
+    ]
+}

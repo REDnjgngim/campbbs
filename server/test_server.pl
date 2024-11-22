@@ -496,11 +496,11 @@ use utf8;
 
         sub is_valid_camp_id_check {
             my ($campId) = @_;
-            my $campIdsFile = './campIds.csv';
-            my $campIdsContent = read_file_with_lock($campIdsFile);
-            my @campIds = split (/,/, $campIdsContent);
+            my $campIdsFile = './master_params.json';
+            my $params = read_file_with_lock($campIdsFile);
+            my $params_json = decode_json($params);
 
-            my $isValid = grep { $_ == $campId } @campIds;
+            my $isValid = grep { $_->{'id'} == $campId } @{$params_json->{'camp'}};
 
             unless($isValid){
                 handleException_exit("invalid_camp_id", $campId);

@@ -82,7 +82,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
             } else {
                 let targetCampName = [];
                 targetCampIds.forEach((id) => {
-                    let { name, mark } = HcampLists[id];
+                    let index = HcampLists.findIndex((list) => list.id === id);
+                    let { name, mark } = HcampLists[index];
                     targetCampName.push(`${mark}${name}`);
                 });
                 diplomacyCampName = targetCampName.join("、") + `に【外交文書】を送信しました。`;
