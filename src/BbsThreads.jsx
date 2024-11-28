@@ -116,7 +116,8 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
 
     const addMessagesRecursively = (timelineNode, depth = 0) => {
         Object.keys(timelineNode).forEach((key) => {
-            const messageData = newbbsTable.log.find((message) => message.No === key);
+            // perlでjsonの型の扱いが難しいので型チェックは外す(newNoを定義する際の数値比較)
+            const messageData = newbbsTable.log.find((message) => message.No == key);
             if (messageData) {
                 const message = renderMessage(messageData, depth, 0);
                 threadArray[threadArray.length - 1].push(message);
