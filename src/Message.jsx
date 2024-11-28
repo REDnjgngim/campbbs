@@ -73,7 +73,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
     const Mcontent = () => {
         let diplomacyCampName = "";
-        const imgPATH = "../public/campBbsData/image/";
+        const imgPATH = "../server/campBbsData/image/";
 
         if (isDiplomacyMessage) {
             if (writenCampId !== HcampId) {

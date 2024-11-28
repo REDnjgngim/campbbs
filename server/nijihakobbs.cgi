@@ -44,7 +44,7 @@ sub certification {
         my $islandName = "";
         my $campViewLastTime = 0;
 
-        open (my $fh, "<:encoding(UTF-8)", "../server/users.csv") or die $!;
+        open (my $fh, "<:encoding(UTF-8)", "./users.csv") or die $!;
             while (my $record = <$fh>) {
                 my ($id, $password, $campId, $name, $timestamp) = split(',', $record);
                 if($id == $islandId && $password eq $islandPassword){
@@ -70,7 +70,7 @@ sub certification {
 sub param_set {
     my ($islandId, $islandCampId, $islandName, $campViewLastTime) = @_;
     my $master_params;
-    if (open(my $fh, '../server/master_params.json')) {
+    if (open(my $fh, './master_params.json')) {
         local $/;
         $master_params = <$fh>;
         close $fh;

@@ -28,7 +28,7 @@ use utf8;
         );
 
         if (exists $routes{$method}) {
-            my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("../public/campBbsData/campBbsLog.json", "../public/campBbsData/campBbsTimeline.json");
+            my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("./campBbsData/campBbsLog.json", "./campBbsData/campBbsTimeline.json");
             my ($log, $timeline) = $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
             # ヘッダー
             print "HTTP/1.1 200 OK\n";
@@ -52,8 +52,8 @@ use utf8;
 
             if (!(-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH")) {
                 # 読み込むファイルが存在しないので作る
-                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json({"$campNo"}), ">");
-                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json({}), ">");
+                write_file_with_lock("./campBbsData/campBbsLog.json", encode_json({"$campNo"}), ">");
+                write_file_with_lock("./campBbsData/campBbsTimeline.json", encode_json({}), ">");
             }
 
             # 掲示板ログ・タイムラインが両方ある場合のみ
@@ -65,8 +65,8 @@ use utf8;
 
             if(!(setIfUndefined_bbsTable_campId($log_json, "$campNo") && setIfUndefined_bbsTable_campId($timeline_json, "$campNo"))){
                 # 初回読み込み時などで存在しない陣営idだった場合は新しく作る
-                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($log_json), ">");
-                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($timeline_json), ">");
+                write_file_with_lock("./campBbsData/campBbsLog.json", encode_json($log_json), ">");
+                write_file_with_lock("./campBbsData/campBbsTimeline.json", encode_json($timeline_json), ">");
             }
 
             # 指定範囲のタイムラインを抽出
@@ -124,8 +124,8 @@ use utf8;
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                write_file_with_lock("../public/campBbsData/campBbsLog.json", encode_json($bbsTable_log), ">");
-                write_file_with_lock("../public/campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
+                write_file_with_lock("./campBbsData/campBbsLog.json", encode_json($bbsTable_log), ">");
+                write_file_with_lock("./campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
             }
         }
 
@@ -198,7 +198,7 @@ use utf8;
             }
 
             # 最後に画像を保存
-            my $imagePATH = "../public/campBbsData/image";
+            my $imagePATH = "./campBbsData/image";
             for(my $i = 0; $i <= $#{$validImages}; $i++){
                 my $fileName = $imageFileNames->[$i];
                 move($validImages->[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_failed", $!);
@@ -264,7 +264,7 @@ use utf8;
             if($#{$editMessage->{'images'}} >= 0){
                 # 画像削除
                 foreach my $image (@{$editMessage->{'images'}}) {
-                    my $imagePATH_file = "../public/campBbsData/image/$image";
+                    my $imagePATH_file = "./campBbsData/image/$image";
                     if (-e $imagePATH_file) {
                         unlink $imagePATH_file;
                     }
