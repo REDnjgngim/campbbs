@@ -2,22 +2,10 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { formInitial } from "./redux/formTypeParamSlice";
 import { modalToggle } from "./redux/modalWindowSlice";
-import { createSelector } from "reselect";
-
-const selectHAKONIWAData = createSelector(
-    (state) => state.HAKONIWAData,
-    (HAKONIWAData) => ({
-        HislandId: HAKONIWAData.islandId,
-        HislandName: HAKONIWAData.islandName,
-        HcampId: HAKONIWAData.campId,
-        HviewLastTime: HAKONIWAData.viewLastTime,
-        HcampLists: HAKONIWAData.campLists,
-        HislandTurn: HAKONIWAData.islandTurn,
-    }),
-);
 
 export default function Message({ messageData, indent, isFixed, messageSend }) {
-    const { HislandId, HcampId, HviewLastTime, HcampLists } = useSelector(selectHAKONIWAData);
+    const ownIslandId = useSelector((state) => state.HAKONIWAData.islandId);
+    const { campId, viewLastTime, campLists } = useSelector((state) => state.HAKONIWAData);
     const {
         No,
         title,
@@ -33,13 +21,13 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         writenTurn,
         important,
     } = messageData;
-    const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
+    const { isLoadingState } = useSelector((state) => state.loadingState);
 
     const dispatch = useDispatch();
     const buttonClass_anime = "transition duration-100 hover:brightness-150 active:brightness-75 active:scale-95";
 
     const isDeletedMessage = writenTurn === -1;
-    const isOwnMessage = islandId === HislandId;
+    const isOwnMessage = islandId === ownIslandId;
     const isImportant = important;
     const isDiplomacyMessage = targetCampIds.length > 0;
 
@@ -50,7 +38,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
             <div className="m-1 flex border-b border-gray-300 p-1 text-left">
                 <div className="mb-0.5 shrink-0 border-r border-gray-300 pr-2">No.{No}</div>
                 <div className="grow break-all pl-2">
-                    {title} {writenTime > HviewLastTime && newIcon}
+                    {title} {writenTime > viewLastTime && newIcon}
                 </div>
             </div>
         );
@@ -76,14 +64,14 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         const imgPATH = "../server/campBbsData/image/";
 
         if (isDiplomacyMessage) {
-            if (writenCampId !== HcampId) {
-                let { name, mark } = HcampLists[writenCampId];
+            if (writenCampId !== campId) {
+                let { name, mark } = campLists[writenCampId];
                 diplomacyCampName = `${mark}${name}から【外交文書】が届いています。`;
             } else {
                 let targetCampName = [];
                 targetCampIds.forEach((id) => {
-                    let index = HcampLists.findIndex((list) => list.id === id);
-                    let { name, mark } = HcampLists[index];
+                    let index = campLists.findIndex((list) => list.id === id);
+                    let { name, mark } = campLists[index];
                     targetCampName.push(`${mark}${name}`);
                 });
                 diplomacyCampName = targetCampName.join("、") + `に【外交文書】を送信しました。`;
@@ -220,7 +208,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         if (isImportant) {
             return "bg-blue-100";
         } else if (targetCampIds.length) {
-            return writenCampId === HcampId ? "bg-orange-100" : "bg-purple-100";
+            return writenCampId === campId ? "bg-orange-100" : "bg-purple-100";
         }
         return "bg-white";
     };

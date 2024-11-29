@@ -13,6 +13,7 @@ use utf8;
     use File::Basename;
     use File::Spec;
     use File::Copy;
+    use File::Path;
     use File::Temp qw/ tempfile /;
     use CampBbs::Image::IntegrityValidator qw(validate_image_integrity);
 
@@ -21,15 +22,21 @@ use utf8;
 
         my $method = $cgi->request_method();
 
-        # 汎用的な処理
         my %routes = (
             "GET" => \&get_api,
             "POST" => \&post_api
         );
 
+        my %hako_type = (
+            "3" => "kyotu",
+            "6" => "emp",
+            "11" => "sea"
+        );
+
         if (exists $routes{$method}) {
-            my ($BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = ("./campBbsData/campBbsLog.json", "./campBbsData/campBbsTimeline.json");
-            my ($log, $timeline) = $routes{$method}->($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH);
+            my ($hako_idx, $eventNo) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)/;  # パスを分割
+            my $campBbsData_FILEPATH = "./campBbsData/" . $hako_type{$hako_idx} . "/event$eventNo";
+            my ($log, $timeline) = $routes{$method}->($cgi, $campBbsData_FILEPATH);
             # ヘッダー
             print "HTTP/1.1 200 OK\n";
             print "Access-Control-Allow-Origin: *\n";
@@ -45,28 +52,29 @@ use utf8;
         return; # 終了
 
         sub get_api {
-            my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
+            my ($cgi, $campBbsData_FILEPATH) = @_;
             my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
             is_valid_camp_id_check($campNo);
 
-            if (!(-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH")) {
-                # 読み込むファイルが存在しないので作る
-                write_file_with_lock("./campBbsData/campBbsLog.json", encode_json({"$campNo"}), ">");
-                write_file_with_lock("./campBbsData/campBbsTimeline.json", encode_json({}), ">");
+            if (!(-d $campBbsData_FILEPATH)) {
+                # 初めてなのでディレクトリとファイルを作成
+                mkpath("$campBbsData_FILEPATH/image") or handleException_exit("Cannot create directory", $!);
+                write_file_with_lock("$campBbsData_FILEPATH/campBbsLog.json", encode_json({"$campNo"}), ">");
+                write_file_with_lock("$campBbsData_FILEPATH/campBbsTimeline.json", encode_json({}), ">");
             }
 
             # 掲示板ログ・タイムラインが両方ある場合のみ
-            my $log = read_file_with_lock($BBSLOG_FILEPATH);
-            my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
+            my $log = read_file_with_lock("$campBbsData_FILEPATH/campBbsLog.json");
+            my $timeline = read_file_with_lock("$campBbsData_FILEPATH/campBbsTimeline.json");
 
             my $log_json = decode_json($log);
             my $timeline_json = decode_json($timeline);
 
             if(!(setIfUndefined_bbsTable_campId($log_json, "$campNo") && setIfUndefined_bbsTable_campId($timeline_json, "$campNo"))){
                 # 初回読み込み時などで存在しない陣営idだった場合は新しく作る
-                write_file_with_lock("./campBbsData/campBbsLog.json", encode_json($log_json), ">");
-                write_file_with_lock("./campBbsData/campBbsTimeline.json", encode_json($timeline_json), ">");
+                write_file_with_lock("$campBbsData_FILEPATH/campBbsLog.json", encode_json($log_json), ">");
+                write_file_with_lock("$campBbsData_FILEPATH/campBbsTimeline.json", encode_json($timeline_json), ">");
             }
 
             # 指定範囲のタイムラインを抽出
@@ -94,7 +102,7 @@ use utf8;
         }
 
         sub post_api {
-            my ($cgi, $BBSLOG_FILEPATH, $BBSTIMELINE_FILEPATH) = @_;
+            my ($cgi, $campBbsData_FILEPATH) = @_;
             my ($campNo, $sub_method) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)/;  # パスを分割
             my %messageHandlers = (
                 "new" => \&post_newMessage,
@@ -112,25 +120,25 @@ use utf8;
             is_valid_camp_id_check($campNo);
 
             # 念の為ファイルの存在チェック
-            if (-e "$BBSLOG_FILEPATH" && -e "$BBSTIMELINE_FILEPATH") {
-                my $log = read_file_with_lock($BBSLOG_FILEPATH);
-                my $timeline = read_file_with_lock($BBSTIMELINE_FILEPATH);
+            if (-e "$campBbsData_FILEPATH/campBbsLog.json" && -e "$campBbsData_FILEPATH/campBbsTimeline.json") {
+                my $log = read_file_with_lock("$campBbsData_FILEPATH/campBbsLog.json");
+                my $timeline = read_file_with_lock("$campBbsData_FILEPATH/campBbsTimeline.json");
 
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi);
+                $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi);
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
 
-                write_file_with_lock("./campBbsData/campBbsLog.json", encode_json($bbsTable_log), ">");
-                write_file_with_lock("./campBbsData/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
+                write_file_with_lock("$campBbsData_FILEPATH/campBbsLog.json", encode_json($bbsTable_log), ">");
+                write_file_with_lock("$campBbsData_FILEPATH/campBbsTimeline.json", encode_json($bbsTable_timeline), ">");
             }
         }
 
         sub post_newMessage{
-            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $cgi) = @_;
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
 
@@ -198,7 +206,7 @@ use utf8;
             }
 
             # 最後に画像を保存
-            my $imagePATH = "./campBbsData/image";
+            my $imagePATH = "$campBbsData_FILEPATH/image";
             for(my $i = 0; $i <= $#{$validImages}; $i++){
                 my $fileName = $imageFileNames->[$i];
                 move($validImages->[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_failed", $!);
@@ -239,7 +247,7 @@ use utf8;
         }
 
         sub post_deleteMessage{
-            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json) = @_;
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH) = @_;
             # DELETE
             my $messageIndex = existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"No"});
 
@@ -264,7 +272,7 @@ use utf8;
             if($#{$editMessage->{'images'}} >= 0){
                 # 画像削除
                 foreach my $image (@{$editMessage->{'images'}}) {
-                    my $imagePATH_file = "./campBbsData/image/$image";
+                    my $imagePATH_file = "$campBbsData_FILEPATH/image/$image";
                     if (-e $imagePATH_file) {
                         unlink $imagePATH_file;
                     }

@@ -10,18 +10,6 @@ import { useLazyGetAllCampBbsTableQuery, useUpdateCampBbsTableMutation } from ".
 import { createSelector } from "reselect";
 import { message_newPost, message_edit, message_pin, message_delete } from "./postManager.js";
 
-const selectHAKONIWAData = createSelector(
-    (state) => state.HAKONIWAData,
-    (HAKONIWAData) => ({
-        HislandId: HAKONIWAData.islandId,
-        HislandName: HAKONIWAData.islandName,
-        HcampId: HAKONIWAData.campId,
-        HviewLastTime: HAKONIWAData.viewLastTime,
-        HcampLists: HAKONIWAData.campLists,
-        HislandTurn: HAKONIWAData.islandTurn,
-    }),
-);
-
 const selectNewbbsTable = createSelector(
     (state) => state.bbsTable,
     (bbsTable) => ({
@@ -31,9 +19,9 @@ const selectNewbbsTable = createSelector(
 );
 
 function App() {
-    const HAKONIWAData = useSelector(selectHAKONIWAData);
+    const HAKONIWAData = useSelector((state) => state.HAKONIWAData);
+    const { campId, campLists, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
     const newbbsTable = useSelector(selectNewbbsTable);
-    const { HcampId, HcampLists } = useSelector(selectHAKONIWAData);
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
 
     // 取得済みのメッセージ全更新
@@ -43,7 +31,7 @@ function App() {
     const bbsTableFetch = () => {
         // エラーなどで0になっている場合は初期値にする
         let getIndex = hasThreadIndex < GET_TIMELINES ? GET_TIMELINES : hasThreadIndex;
-        trigger({ campId: HcampId, endIndex: getIndex }, false);
+        trigger({ campId, hako_idx, eventNo, endIndex: getIndex }, false);
     };
 
     const messageSend = async (form, formType) => {
@@ -83,7 +71,9 @@ function App() {
 
         // API通信
         const result = await updateCampBbsTable({
-            campId: HcampId,
+            campId,
+            hako_idx,
+            eventNo,
             subMethod: updateType,
             formData,
             formType,
@@ -97,8 +87,8 @@ function App() {
         return false;
     };
 
-    const index = HcampLists.findIndex((list) => list.id === HcampId);
-    const LBBSTITLE = `${HcampLists[index].mark}${HcampLists[index].name} 掲示板`;
+    const index = campLists.findIndex((list) => list.id === campId);
+    const LBBSTITLE = `${campLists[index].mark}${campLists[index].name} 掲示板`;
 
     return (
         <div className="App">

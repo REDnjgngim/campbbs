@@ -41,7 +41,7 @@ export default function PostForm({ messageSend }) {
     const dispatch = useDispatch();
     const MessageNo = useSelector((state) => state.modalWindow.contentParam);
     const formType = useSelector((state) => state.modalWindow.viewType);
-    const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
+    const { isLoadingState } = useSelector((state) => state.loadingState);
 
     useEffect(() => {
         setIsSubmitDisabled(!formData[formType].content);

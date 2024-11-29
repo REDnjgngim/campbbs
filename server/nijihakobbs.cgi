@@ -12,19 +12,31 @@ script_output($paramHTML);
 
 sub certification {
 
-    check_referer();
-    return check_island();
+    my ($hako_idx) = check_referer();
+    my ($id, $CampId, $name, $viewLastTime) = check_island();
+    return ($id, $CampId, $name, $viewLastTime, $hako_idx);
 
     sub check_referer {
-        my $referer_fileName = 'hako-main.cgi'; # 現状はこれだけ
-        my $own_filepath = $0;
+        my $hako_idx = 0;
+        my $referer_fileName_kyotu = '/kyotu/st/hako-main.cgi';
+        my $referer_fileName_emp = '/emp/st/hako-main.cgi';
+        my $referer_fileName_sea = '/sea/st/hako-main.cgi';
+        my $own_filepath = "/campbbs/server/nijihakobbs.cgi";
         my $own_filename = (split(/\\/, $own_filepath))[-1]; # 自身のファイル名
 
-        # $referer_fileNameからのみ通過OK
+        # $referer_fileNameからのみ通過OK。リファラで箱庭を判定する
         my $ref = $ENV{'HTTP_REFERER'};
-        if ($ref =~ /$referer_fileName/) {
-            $ref =~ s/$referer_fileName/$own_filename/g;
+        if ($ref =~ /$referer_fileName_kyotu/) {
+            $hako_idx = 3;
+            $ref =~ s/$referer_fileName_kyotu/$own_filename/g;
+        } elsif ($ref =~ /$referer_fileName_emp/) {
+            $hako_idx = 6;
+            $ref =~ s/$referer_fileName_emp/$own_filename/g;
+        } elsif ($ref =~ /$referer_fileName_sea/) {
+            $hako_idx = 11;
+            $ref =~ s/$referer_fileName_sea/$own_filename/g;
         }
+
         $own_filepath =~ s/\~/.*/g;
         if (!($ref =~ /$own_filepath/)) {
             print "Content-type: text/html; charset=utf-8\n\n";
@@ -32,6 +44,8 @@ sub certification {
             print "不正なアクセスです1";
             die;
         }
+
+        return $hako_idx;
     }
 
     sub check_island {
@@ -68,7 +82,7 @@ sub certification {
 }
 
 sub param_set {
-    my ($islandId, $islandCampId, $islandName, $campViewLastTime) = @_;
+    my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = @_;
     my $master_params;
     if (open(my $fh, './master_params.json')) {
         local $/;
@@ -96,6 +110,8 @@ sub param_set {
             $campListsHTML
         ];
         window.islandTurn = $master_params_json->{'islandTurn'};
+        window.hako_idx = $hako_idx;
+        window.eventNo = $master_params_json->{'eventNo'};
     PARAM
 
     return $param;

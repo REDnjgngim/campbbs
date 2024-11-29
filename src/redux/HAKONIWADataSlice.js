@@ -9,6 +9,8 @@ export const HAKONIWADataSlice = createSlice({
         viewLastTime: window.viewLastTime,
         campLists: window.campLists,
         islandTurn: window.islandTurn,
+        hako_idx: window.hako_idx,
+        eventNo: window.eventNo,
     },
     setParam: (state, action) => {
         state.islandId = action.payload.islandId;
