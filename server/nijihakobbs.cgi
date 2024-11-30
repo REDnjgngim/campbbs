@@ -14,6 +14,7 @@ sub certification {
 
     my ($hako_idx) = check_referer();
     my ($id, $CampId, $name, $viewLastTime) = check_island($hako_idx);
+    check_transitionable();
     return ($id, $CampId, $name, $viewLastTime, $hako_idx);
 
     sub check_referer {
@@ -80,6 +81,17 @@ sub certification {
         }
 
         return ($islandId, $islandCampId, $islandName, $campViewLastTime);
+    }
+
+    sub check_transitionable {
+        my $master_params_json = import_master_params_json($hako_idx);
+        my $current_time = time();
+        if($current_time > $master_params_json->{'transitionableTime'}){
+            # 閲覧可能時刻はゲーム終了後から72時間を想定(箱庭による)
+            print "Content-type: text/html; charset=utf-8\n\n";
+            print "ゲーム終了から一定期間が過ぎたため使用できません。";
+            die;
+        }
     }
 }
 
