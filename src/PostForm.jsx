@@ -94,7 +94,7 @@ export default function PostForm({ messageSend }) {
                 <textarea
                     name="content"
                     placeholder="内容"
-                    className="mb-2 h-36 border p-2"
+                    className="mb-2 min-h-36 border p-2"
                     value={formData[formType].content || ""}
                     style={{ color: formData[formType].color }}
                     onChange={handleInputChange}
