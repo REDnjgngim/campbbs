@@ -135,6 +135,7 @@ use utf8;
             my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi, $hako_idx) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
+            my $imagePATH = "$campBbsData_FILEPATH/image";
 
             if($newMessage_json->{"parentId"}){
                 # 返信時は先に返信先のメッセージがあるかだけチェック
@@ -142,7 +143,7 @@ use utf8;
             }
 
             # 画像を先に処理(外交文書に添付した画像は全陣営共通のファイル名を参照することになる)
-            my ($validImages, $imageFileNames) = checkAndSet_images($cgi, $newMessage_json);
+            my ($validImages, $imageFileNames) = checkAndSet_images($cgi, $newMessage_json, $imagePATH);
 
             # 外交文書を考慮して陣営ごとに処理
             foreach my $campId (@campIds){
@@ -200,7 +201,6 @@ use utf8;
             }
 
             # 最後に画像を保存
-            my $imagePATH = "$campBbsData_FILEPATH/image";
             for(my $i = 0; $i <= $#{$validImages}; $i++){
                 my $fileName = $imageFileNames->[$i];
                 move($validImages->[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_failed", $!);
@@ -405,7 +405,7 @@ use utf8;
         }
 
         sub checkAndSet_images {
-            my ($cgi, $newMessage_json) = @_;
+            my ($cgi, $newMessage_json, $imagePATH) = @_;
             my @imageFilehandles = $cgi->upload("images");
             my (@validImages, @imageFileNames);
 
@@ -497,7 +497,7 @@ use utf8;
         }
 
         sub is_valid_camp_id_check {
-            my ($campId) = @_;
+            my ($campId, $hako_idx) = @_;
             my $campIdsFile = './campBbsData/' . hako_type($hako_idx) . '/master_params.json';
             my $params = read_file_with_lock($campIdsFile);
             my $params_json = decode_json($params);
@@ -547,7 +547,7 @@ use utf8;
         }
 
         sub hako_type {
-            $hako_idx = shift;
+            my $hako_idx = shift;
             if($hako_idx == 3){
                 return "kyotu";
             }elsif($hako_idx == 6){

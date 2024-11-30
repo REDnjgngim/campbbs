@@ -5,7 +5,7 @@ import { modalToggle } from "./redux/modalWindowSlice";
 
 export default function Message({ messageData, indent, isFixed, messageSend }) {
     const ownIslandId = useSelector((state) => state.HAKONIWAData.islandId);
-    const { campId, viewLastTime, campLists } = useSelector((state) => state.HAKONIWAData);
+    const { campId, viewLastTime, campLists, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
     const {
         No,
         title,
@@ -61,7 +61,17 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
     const Mcontent = () => {
         let diplomacyCampName = "";
-        const imgPATH = "../server/campBbsData/image/";
+        const hako_type = (hako_idx) => {
+            switch (hako_idx) {
+                case 3:
+                    return "kyotu";
+                case 6:
+                    return "emp";
+                case 11:
+                    return "sea";
+            }
+        };
+        const imgPATH = `../server/campBbsData/${hako_type(hako_idx)}/event${eventNo}/image/`;
 
         if (isDiplomacyMessage) {
             if (writenCampId !== campId) {
