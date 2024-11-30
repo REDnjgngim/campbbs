@@ -1,0 +1,10 @@
+{
+    "eventNo": 18,
+    "islandTurn": 67,
+    "transitionableTime": 2556111599,
+    "camp": [
+        { "id": 1, "name": "魏", "mark": "∀" },
+        { "id": 2, "name": "呉", "mark": "Ψ" },
+        { "id": 3, "name": "蜀", "mark": "Ж" }
+    ]
+}
