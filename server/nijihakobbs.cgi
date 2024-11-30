@@ -14,7 +14,7 @@ sub certification {
 
     my ($hako_idx) = check_referer();
     my ($id, $CampId, $name, $viewLastTime) = check_island($hako_idx);
-    check_transitionable();
+    check_transitionable($hako_idx);
     return ($id, $CampId, $name, $viewLastTime, $hako_idx);
 
     sub check_referer {
@@ -41,7 +41,6 @@ sub certification {
         $own_filepath =~ s/\~/.*/g;
         if (!($ref =~ /$own_filepath/)) {
             print "Content-type: text/html; charset=utf-8\n\n";
-            print "$ref =~ /$own_filepath/<br>";
             print "不正なアクセスです1";
             die;
         }
@@ -61,7 +60,7 @@ sub certification {
         my $campViewLastTime = 0;
         my $master_params_json = import_master_params_json($hako_idx);
 
-        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . $master_params_json->{'eventNo'} . "/users.csv") or die $!;
+        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv") or die $!;
             while (my $record = <$fh>) {
                 my ($id, $password, $campId, $name, $timestamp) = split(',', $record);
                 if($id == $islandId && $password eq $islandPassword){
@@ -84,6 +83,7 @@ sub certification {
     }
 
     sub check_transitionable {
+        my $hako_idx = shift;
         my $master_params_json = import_master_params_json($hako_idx);
         my $current_time = time();
         if($current_time > $master_params_json->{'transitionableTime'}){
@@ -124,7 +124,7 @@ sub param_set {
 sub script_output {
     my ($paramHTML) = @_;
     my @index_html;
-    if (open(my $fh, './index.html')) {
+    if (open(my $fh, '../index.html')) {
 
         while (my $line = <$fh>) {
             push(@index_html, $line);
