@@ -6,14 +6,14 @@ use utf8;
 use JSON;
 use CGI;
 
-my ($islandId, $islandCampId, $islandName, $campViewLastTime) = certification();
-my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime);
+my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = certification();
+my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx);
 script_output($paramHTML);
 
 sub certification {
 
     my ($hako_idx) = check_referer();
-    my ($id, $CampId, $name, $viewLastTime) = check_island();
+    my ($id, $CampId, $name, $viewLastTime) = check_island($hako_idx);
     return ($id, $CampId, $name, $viewLastTime, $hako_idx);
 
     sub check_referer {
@@ -49,6 +49,7 @@ sub certification {
     }
 
     sub check_island {
+        my ($hako_idx) = @_;
         my $cgi = CGI->new();
         my %FORM = $cgi->Vars();
         my $success = 0;
@@ -57,8 +58,9 @@ sub certification {
         my $islandCampId = "";
         my $islandName = "";
         my $campViewLastTime = 0;
+        my $master_params_json = import_master_params_json($hako_idx);
 
-        open (my $fh, "<:encoding(UTF-8)", "./users.csv") or die $!;
+        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . $master_params_json->{'eventNo'} . "/users.csv") or die $!;
             while (my $record = <$fh>) {
                 my ($id, $password, $campId, $name, $timestamp) = split(',', $record);
                 if($id == $islandId && $password eq $islandPassword){
@@ -83,18 +85,8 @@ sub certification {
 
 sub param_set {
     my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = @_;
-    my $master_params;
-    if (open(my $fh, './master_params.json')) {
-        local $/;
-        $master_params = <$fh>;
-        close $fh;
-    }else{
-        print "Content-type: text/html; charset=utf-8\n\n";
-        print "必要なファイルが存在しません。管理人へご連絡ください1";
-        die;
-    }
 
-    my $master_params_json = decode_json($master_params);
+    my $master_params_json = import_master_params_json($hako_idx);
     # 陣営を整形
     my $campListsHTML = "";
     foreach my $record (@{$master_params_json->{"camp"}}) {
@@ -137,5 +129,33 @@ sub script_output {
         print "Content-type: text/html; charset=utf-8\n\n";
         print "ファイルが存在しません。管理人へご連絡ください2";
         die;
+    }
+}
+
+sub import_master_params_json {
+    my $hako_idx = shift;
+    my $master_params;
+    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/master_params.json")) {
+        local $/;
+        $master_params = <$fh>;
+        close $fh;
+    }else{
+        print "Content-type: text/html; charset=utf-8\n\n";
+        print "必要なファイルが存在しません。管理人へご連絡ください1";
+        die;
+    }
+
+    my $master_params_json = decode_json($master_params);
+    return $master_params_json;
+}
+
+sub hako_type {
+    $hako_idx = shift;
+    if($hako_idx == 3){
+        return "kyotu";
+    }elsif($hako_idx == 6){
+        return "emp";
+    }elsif($hako_idx == 11){
+        return "sea";
     }
 }

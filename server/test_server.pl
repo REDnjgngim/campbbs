@@ -27,15 +27,9 @@ use utf8;
             "POST" => \&post_api
         );
 
-        my %hako_type = (
-            "3" => "kyotu",
-            "6" => "emp",
-            "11" => "sea"
-        );
-
         if (exists $routes{$method}) {
             my ($hako_idx, $eventNo) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)/;  # パスを分割
-            my $campBbsData_FILEPATH = "./campBbsData/" . $hako_type{$hako_idx} . "/event$eventNo";
+            my $campBbsData_FILEPATH = "./campBbsData/" . hako_type($hako_idx) . "/event$eventNo";
             my ($log, $timeline) = $routes{$method}->($cgi, $campBbsData_FILEPATH);
             # ヘッダー
             print "HTTP/1.1 200 OK\n";
@@ -53,9 +47,9 @@ use utf8;
 
         sub get_api {
             my ($cgi, $campBbsData_FILEPATH) = @_;
-            my ($campNo, $begin, $end) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
+            my ($hako_idx, $eventNo, $campNo, $begin, $end) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
 
-            is_valid_camp_id_check($campNo);
+            is_valid_camp_id_check($campNo, $hako_idx);
 
             if (!(-d $campBbsData_FILEPATH)) {
                 # 初めてなのでディレクトリとファイルを作成
@@ -103,7 +97,7 @@ use utf8;
 
         sub post_api {
             my ($cgi, $campBbsData_FILEPATH) = @_;
-            my ($campNo, $sub_method) = ($cgi->path_info()) =~ /\/camps\/(\d+)\/(.+)/;  # パスを分割
+            my ($hako_idx, $eventNo, $campNo, $sub_method) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)\/camps\/(\d+)\/(.+)/;  # パスを分割
             my %messageHandlers = (
                 "new" => \&post_newMessage,
                 "reply" => \&post_newMessage,
@@ -117,7 +111,7 @@ use utf8;
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
 
-            is_valid_camp_id_check($campNo);
+            is_valid_camp_id_check($campNo, $hako_idx);
 
             # 念の為ファイルの存在チェック
             if (-e "$campBbsData_FILEPATH/campBbsLog.json" && -e "$campBbsData_FILEPATH/campBbsTimeline.json") {
@@ -127,7 +121,7 @@ use utf8;
                 my $bbsTable_log = decode_json($log);
                 my $bbsTable_timeline = decode_json($timeline);
 
-                $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi);
+                $messageHandlers{$sub_method}->($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi, $hako_idx);
 
                 $camp_log = encode_json($bbsTable_log->{$campNo});
                 $camp_timeline = encode_json($bbsTable_timeline->{$campNo});
@@ -138,7 +132,7 @@ use utf8;
         }
 
         sub post_newMessage{
-            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi) = @_;
+            my ($bbsTable_log, $bbsTable_timeline, $campNo, $newMessage_json, $campBbsData_FILEPATH, $cgi, $hako_idx) = @_;
             # POST
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
 
@@ -152,7 +146,7 @@ use utf8;
 
             # 外交文書を考慮して陣営ごとに処理
             foreach my $campId (@campIds){
-                is_valid_camp_id_check($campId);
+                is_valid_camp_id_check($campNo, $hako_idx);
                 setIfUndefined_bbsTable_campId($bbsTable_log, "$campId");
                 setIfUndefined_bbsTable_campId($bbsTable_timeline, "$campId");
 
@@ -504,7 +498,7 @@ use utf8;
 
         sub is_valid_camp_id_check {
             my ($campId) = @_;
-            my $campIdsFile = './master_params.json';
+            my $campIdsFile = './campBbsData/' . hako_type($hako_idx) . '/master_params.json';
             my $params = read_file_with_lock($campIdsFile);
             my $params_json = decode_json($params);
 
@@ -550,6 +544,17 @@ use utf8;
             print "Content-Type: text/plain\n\n";
             print "Bad Request";
             die;
+        }
+
+        sub hako_type {
+            $hako_idx = shift;
+            if($hako_idx == 3){
+                return "kyotu";
+            }elsif($hako_idx == 6){
+                return "emp";
+            }elsif($hako_idx == 11){
+                return "sea";
+            }
         }
     }
 }
