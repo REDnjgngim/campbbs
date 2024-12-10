@@ -16,7 +16,7 @@ const selectNewbbsTable = createSelector(
 export default function BbsMessages({ messageSend, GET_TIMELINES }) {
     const newbbsTable = useSelector(selectNewbbsTable);
 
-    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
+    const { campId, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
     const isGetPageSkip = useRef(false);
 
@@ -27,7 +27,9 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
 
     const { data, error, isLoading, refetch } = useGetPageCampBbsTableQuery(
         {
-            campId: HcampId,
+            campId,
+            hako_idx,
+            eventNo,
             startIndex: getTimelineIndex + GET_TIMELINES - (GET_TIMELINES - 1), // 初期値は 1
             endIndex: getTimelineIndex + GET_TIMELINES,
         },
@@ -116,7 +118,8 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
 
     const addMessagesRecursively = (timelineNode, depth = 0) => {
         Object.keys(timelineNode).forEach((key) => {
-            const messageData = newbbsTable.log.find((message) => message.No === key);
+            // perlでjsonの型の扱いが難しいので型チェックは外す(newNoを定義する際の数値比較)
+            const messageData = newbbsTable.log.find((message) => message.No == key);
             if (messageData) {
                 const message = renderMessage(messageData, depth, 0);
                 threadArray[threadArray.length - 1].push(message);

@@ -41,7 +41,7 @@ export default function PostForm({ messageSend }) {
     const dispatch = useDispatch();
     const MessageNo = useSelector((state) => state.modalWindow.contentParam);
     const formType = useSelector((state) => state.modalWindow.viewType);
-    const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
+    const { isLoadingState } = useSelector((state) => state.loadingState);
 
     useEffect(() => {
         setIsSubmitDisabled(!formData[formType].content);
@@ -94,7 +94,7 @@ export default function PostForm({ messageSend }) {
                 <textarea
                     name="content"
                     placeholder="内容"
-                    className="mb-2 h-36 border p-2"
+                    className="mb-2 min-h-36 border p-2"
                     value={formData[formType].content || ""}
                     style={{ color: formData[formType].color }}
                     onChange={handleInputChange}
@@ -161,15 +161,12 @@ const SelectCamp = React.memo(function MemoizedSelectCamp() {
         <div className="mb-2 flex items-center self-start">
             <div className="mr-3">送信先</div>
             <select className="border p-2" name="targetCampId">
-                {Object.entries(HcampLists).map(
-                    ([key, { name, mark }]) =>
-                        key !== HcampId && (
-                            <option key={key} value={key}>
-                                {mark}
-                                {name}
-                            </option>
-                        ),
-                )}
+                {HcampLists.filter((camp) => camp.id !== HcampId).map((camp) => (
+                    <option key={camp.id} value={camp.id}>
+                        {camp.mark}
+                        {camp.name}
+                    </option>
+                ))}
             </select>
         </div>
     );

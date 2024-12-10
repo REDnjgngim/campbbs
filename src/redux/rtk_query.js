@@ -48,24 +48,24 @@ export const campApi = createApi({
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({
         getAllCampBbsTable: builder.query({
-            query: ({ campId, endIndex }) => ({
+            query: ({ campId, hako_idx, eventNo, endIndex }) => ({
                 method: "get",
-                url: `/api/camps/${campId}/begin/1/end/${endIndex}`,
+                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/begin/1/end/${endIndex}`,
                 isReload: true,
             }),
         }),
         getPageCampBbsTable: builder.query({
-            query: ({ campId, startIndex, endIndex }) => ({
+            query: ({ campId, hako_idx, eventNo, startIndex, endIndex }) => ({
                 method: "get",
-                url: `/api/camps/${campId}/begin/${startIndex}/end/${endIndex}`,
+                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/begin/${startIndex}/end/${endIndex}`,
                 isReload: false,
             }),
         }),
         updateCampBbsTable: builder.mutation({
-            query: ({ campId, subMethod, formData, formType }) => ({
+            query: ({ campId, hako_idx, eventNo, subMethod, formData, formType }) => ({
                 method: "post",
-                url: `/api/camps/${campId}/${subMethod}`,
-                body: formData, // dataをbodyに変更
+                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/${subMethod}`,
+                body: formData,
                 formType,
             }),
         }),

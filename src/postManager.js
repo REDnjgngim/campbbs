@@ -9,7 +9,7 @@ const DIALOG_MESSAGE = {
 };
 
 function message_newPost(form, HAKONIWAData, formType) {
-    const { HislandId, HislandName, HislandTurn, HcampId } = HAKONIWAData;
+    const { islandId, islandName, islandTurn, campId } = HAKONIWAData;
     const { newNo, title, name, content, color, targetNo, targetCampId, images } = form;
 
     if (formType === "diplomacy" && !confirm(DIALOG_MESSAGE.diplomacy)) {
@@ -30,11 +30,11 @@ function message_newPost(form, HAKONIWAData, formType) {
         owner: name.value,
         content: content.value,
         contentColor: color.value,
-        islandId: HislandId,
-        islandName: HislandName,
-        writenTurn: HislandTurn,
+        islandId: islandId,
+        islandName: islandName,
+        writenTurn: islandTurn,
         parentId: targetNo.value === newNo.value ? null : targetNo.value,
-        writenCampId: HcampId,
+        writenCampId: campId,
         targetCampIds: targetCampIds,
         important: false,
         images: validImages, // formDataに格納するための一時保持
