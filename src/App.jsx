@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "./App.css";
 import "./index.css";
 import BbsMessages from "./BbsThreads.jsx";
 import FixedFooterButtons from "./FixedFooterButtons.jsx";
 import ModalWindow from "./ModalWindow";
 import Toast from "./Toast";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { formSave } from "./redux/formTypeParamSlice";
+import { setCookie } from "./redux/cookieSlice.js";
 import { useLazyGetAllCampBbsTableQuery, useUpdateCampBbsTableMutation } from "./redux/rtk_query";
 import { createSelector } from "reselect";
 import { message_newPost, message_edit, message_pin, message_delete } from "./postManager.js";
@@ -23,6 +25,7 @@ function App() {
     const { campId, campLists, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
     const newbbsTable = useSelector(selectNewbbsTable);
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
+    const dispatch = useDispatch();
 
     // 取得済みのメッセージ全更新
     const GET_TIMELINES = 10; // 1回に読み込む数
@@ -84,8 +87,58 @@ function App() {
             bbsTableFetch();
         }
 
+        if (document.cookie.includes(`cookieAgree`)) {
+            const isAgree = document.cookie
+                .split("; ")
+                .find((row) => row.startsWith(`cookieAgree`))
+                .split("=")[1];
+            if (isAgree) {
+                dispatch(
+                    setCookie({
+                        name: `owner_${hako_idx}_${eventNo}`,
+                        value: createMessage.owner,
+                    }),
+                );
+                dispatch(
+                    setCookie({
+                        name: `contentColor_${hako_idx}_${eventNo}`,
+                        value: createMessage.contentColor,
+                    }),
+                );
+            }
+        }
+
         return false;
     };
+
+    useEffect(() => {
+        const loadCookies = () => {
+            const getCookieValue = (name) => {
+                const cookie = document.cookie.split("; ").find((row) => row.startsWith(name));
+                return cookie ? cookie.split("=")[1] : null;
+            };
+
+            const updateFormData = (formName, cookieName) => {
+                const cookieValue = getCookieValue(cookieName);
+                if (cookieValue) {
+                    ["new", "reply"].forEach((type) => {
+                        dispatch(
+                            formSave({
+                                formType: type,
+                                formName: formName,
+                                formValue: decodeURIComponent(cookieValue),
+                            }),
+                        );
+                    });
+                }
+            };
+
+            updateFormData("name", `owner_${hako_idx}_${eventNo}`);
+            updateFormData("color", `contentColor_${hako_idx}_${eventNo}`);
+        };
+
+        loadCookies();
+    }, []);
 
     const index = campLists.findIndex((list) => list.id === campId);
     const LBBSTITLE = `${campLists[index].mark}${campLists[index].name} 掲示板`;

@@ -5,6 +5,7 @@ import toastReducer from "./toastSlice";
 import formTypeParamReducer from "./formTypeParamSlice";
 import modalWindowReducer from "./modalWindowSlice";
 import loadingStateReducer from "./loadingStateSlice";
+import cookieReducer from "./cookieSlice";
 import { campApi } from "./rtk_query";
 
 export const store = configureStore({
@@ -15,6 +16,7 @@ export const store = configureStore({
         formTypeParam: formTypeParamReducer,
         modalWindow: modalWindowReducer,
         loadingState: loadingStateReducer,
+        cookie: cookieReducer,
         [campApi.reducerPath]: campApi.reducer,
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(campApi.middleware),
