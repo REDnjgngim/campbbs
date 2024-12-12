@@ -62,9 +62,9 @@ export default function PostForm({ messageSend }) {
     );
 
     return (
-        <div className="max-h-[90vh] basis-full" onClick={(e) => e.stopPropagation()}>
+        <div className="max-h-[80dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form
-                className="flex max-h-[90vh] w-full grow flex-col overflow-y-auto bg-white p-5"
+                className="flex grow flex-col bg-white p-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     messageSend(e.target, formType);
