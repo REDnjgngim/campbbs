@@ -11,9 +11,13 @@ export default function ModalWindow({ messageSend }) {
     const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
     useEffect(() => {
-        if (ModalContentType !== "close") {
-            setIsOpen_animeClass(true);
-        }
+        // firefoxだとopen時のアニメーションが効かないので遅延を入れる
+        const timer = setTimeout(() => {
+            if (ModalContentType !== "close") {
+                setIsOpen_animeClass(true);
+            }
+        }, 10);
+        return () => clearTimeout(timer);
     }, [ModalContentType]);
 
     if (ModalContentType === "close") {
