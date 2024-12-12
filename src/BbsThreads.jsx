@@ -145,7 +145,7 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
             <div className="text-right">
                 <button
                     onClick={toggleFilter}
-                    className={`mr-8 w-36 rounded-sm border p-2 shadow-sm ${filterOptions[filterIndex] === "all_thread" ? "bg-gray-100 ring-2 ring-gray-200" : "bg-blue-100 font-bold ring-2 ring-blue-200"}`}
+                    className={`BUTTON_ACTION_common mr-8 w-36 rounded-sm border p-2 shadow-sm ${filterOptions[filterIndex] === "all_thread" ? "bg-gray-100 ring-2 ring-gray-200" : "bg-blue-100 font-bold ring-2 ring-blue-200"}`}
                 >
                     <span className="i-tabler-filter align-bottom text-xl"></span>
                     {FILTER_BUTTON_NAME[filterIndex]}

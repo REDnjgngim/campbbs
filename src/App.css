@@ -8,31 +8,54 @@ html {
     padding: 2rem 0 8rem;
 }
 
+.BUTTON_ACTION_common {
+    transition: all 0.1s ease-in-out;
+
+    &:active {
+        filter: brightness(0.75);
+        transform: scale(0.95);
+    }
+
+    &:hover {
+        filter: brightness(1.1);
+    }
+}
+
+.BUTTON_ACTION_messageButton {
+    transition: all 0.1s ease-in-out;
+
+    &:active {
+        filter: brightness(0.75);
+        transform: scale(0.95);
+    }
+
+    &:hover {
+        filter: brightness(1.5);
+    }
+}
+
 .BATSU {
     max-width: 30px;
     max-height: 30px;
     width: 3vh;
     height: 3vh;
-}
 
-.BATSU::before,
-.BATSU::after {
-    /* 共通設定 */
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 3px; /* 棒の幅（太さ） */
-    height: 30px; /* 棒の高さ */
-    background: #ccc;
-}
-
-.BATSU::before {
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.BATSU::after {
-    transform: translate(-50%, -50%) rotate(-45deg);
+    &::before,
+    &::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 3px; /* 棒の幅（太さ） */
+        height: 30px; /* 棒の高さ */
+        background: #ccc;
+    }
+    &::before {
+        transform: translate(-50%, -50%) rotate(45deg);
+    }
+    &::after {
+        transform: translate(-50%, -50%) rotate(-45deg);
+    }
 }
 
 .RELOAD {
@@ -41,20 +64,20 @@ html {
     border-right-color: transparent;
     border-radius: 100%;
     box-sizing: border-box;
-}
 
-.RELOAD:before {
-    position: absolute;
-    top: 0.4em;
-    right: -0.5em;
-    content: "";
-    height: 50%;
-    border: 0.6em solid transparent;
-    border-top: 0.6em solid;
-    background: transparent;
-    transform-origin: left top;
-    transform: rotate(-45deg);
-    box-sizing: border-box;
+    &:before {
+        position: absolute;
+        top: 0.4em;
+        right: -0.5em;
+        content: "";
+        height: 50%;
+        border: 0.6em solid transparent;
+        border-top: 0.6em solid;
+        background: transparent;
+        transform-origin: left top;
+        transform: rotate(-45deg);
+        box-sizing: border-box;
+    }
 }
 
 .LOADING-CIRCLE {
@@ -70,33 +93,5 @@ html {
     }
     to {
         transform: rotate(359deg);
-    }
-}
-
-/* 縦スマホ */
-@media (max-aspect-ratio: 9 / 16) {
-    .App div {
-        /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
-    }
-}
-
-/* 縦スマホ～正方形 */
-@media (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 4 / 3) {
-    .App div {
-        /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
-    }
-}
-
-/* 正方形～横スマホ */
-@media (min-aspect-ratio: 4 / 3) {
-    .App div {
-        /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
-    }
-}
-
-/* 横スマホ～ */
-@media (min-aspect-ratio: 16 / 9) and (pointer: coarse) {
-    .App div {
-        /* font-size: 0.8rem; メッセージのフォントサイズを小さく設定 */
     }
 }

@@ -24,7 +24,6 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const { isLoadingState } = useSelector((state) => state.loadingState);
 
     const dispatch = useDispatch();
-    const buttonClass_anime = "transition duration-100 hover:brightness-150 active:brightness-75 active:scale-95";
 
     const isDeletedMessage = writenTurn === -1;
     const isOwnMessage = islandId === ownIslandId;
@@ -144,7 +143,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                 <div className="m-0.5 flex items-end pb-1">
                     {!isFixed && (
                         <button
-                            className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                            className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
                             disabled={isLoadingState}
                             onClick={() => {
                                 dispatch(
@@ -167,7 +166,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                     {isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
-                                className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                                className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
                                 disabled={isLoadingState}
                                 onClick={() => {
                                     dispatch(
@@ -188,7 +187,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                                 <span className="i-tabler-pencil align-bottom text-2xl text-blue-900"></span>
                             </button>
                             <button
-                                className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                                className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
                                 disabled={isLoadingState}
                                 onClick={() => messageSend(messageData, "delete")}
                             >
@@ -197,7 +196,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                         </>
                     )}
                     <button
-                        className={`m-0.5 p-1.5 ${!isLoadingState ? buttonClass_anime : "brightness-75"}`}
+                        className={`m-0.5 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
                         disabled={isLoadingState}
                         onClick={() => messageSend(messageData, "pin")}
                     >
