@@ -40,9 +40,7 @@ sub certification {
 
         $own_filepath =~ s/\~/.*/g;
         if (!($ref =~ /$own_filepath/)) {
-            print "Content-type: text/html; charset=utf-8\n\n";
-            print "不正なアクセスです1";
-            die;
+            error_page("不正なアクセスです");
         }
 
         return $hako_idx;
@@ -74,9 +72,7 @@ sub certification {
         close $fh;
 
         unless($success) {
-            print "Content-type: text/html; charset=utf-8\n\n";
-            print "不正なアクセスです2";
-            die;
+            error_page("不正なアクセスです");
         }
 
         return ($islandId, $islandCampId, $islandName, $campViewLastTime);
@@ -88,9 +84,7 @@ sub certification {
         my $current_time = time();
         if($current_time > $master_params_json->{'transitionableTime'}){
             # 閲覧可能時刻はゲーム終了後から72時間を想定(箱庭による)
-            print "Content-type: text/html; charset=utf-8\n\n";
-            print "ゲーム終了から一定期間が過ぎたため使用できません。";
-            die;
+            error_page("ゲーム終了から一定期間が過ぎたため使用できません。");
         }
     }
 }
@@ -124,7 +118,7 @@ sub param_set {
 sub script_output {
     my ($paramHTML) = @_;
     my @index_html;
-    if (open(my $fh, '../index.html')) {
+    if (open(my $fh, "<:encoding(UTF-8)", '../index.html')) {
 
         while (my $line = <$fh>) {
             push(@index_html, $line);
@@ -138,9 +132,7 @@ sub script_output {
         print "Content-type: text/html; charset=utf-8\n\n";
         print join("", @index_html);
     } else {
-        print "Content-type: text/html; charset=utf-8\n\n";
-        print "ファイルが存在しません。管理人へご連絡ください2";
-        die;
+        error_page("インデックスファイルが存在しません。管理人へご連絡ください");
     }
 }
 
@@ -152,13 +144,35 @@ sub import_master_params_json {
         $master_params = <$fh>;
         close $fh;
     }else{
-        print "Content-type: text/html; charset=utf-8\n\n";
-        print "必要なファイルが存在しません。管理人へご連絡ください1";
-        die;
+        error_page("設定ファイルが存在しません。管理人へご連絡ください");
     }
 
     my $master_params_json = decode_json($master_params);
     return $master_params_json;
+}
+
+sub error_page {
+    my ($error) = @_;
+    my @error_html;
+    if (open(my $fh, "<:encoding(UTF-8)", '../error.html')) {
+
+        while (my $line = <$fh>) {
+            push(@error_html, $line);
+            if($line =~ /<h2/){
+                push(@error_html, $error);
+            }
+        }
+        close($fh);
+
+        # error.htmlの内容を出力
+        print "Content-type: text/html; charset=utf-8\n\n";
+        print join("", @error_html);
+    } else {
+        print "Content-type: text/html; charset=utf-8\n\n";
+        print "エラーが発生しました。管理人へご連絡ください";
+    }
+
+    die;
 }
 
 sub hako_type {
