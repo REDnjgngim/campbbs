@@ -92,7 +92,8 @@ function App() {
                 .split("; ")
                 .find((row) => row.startsWith(`cookieAgree`))
                 .split("=")[1];
-            if (isAgree) {
+
+            if (isAgree && (formType === "new" || formType === "reply")) {
                 dispatch(
                     setCookie({
                         name: `owner_${hako_idx}_${eventNo}`,
