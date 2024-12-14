@@ -8,12 +8,15 @@ export default function ModalWindow({ messageSend }) {
     const dispatch = useDispatch();
     const ModalContentType = useSelector((state) => state.modalWindow.viewType);
     const [isOpen_animeClass, setIsOpen_animeClass] = useState(false);
-    const buttonClass_anime = "transition duration-100 hover:brightness-110 active:brightness-75 active:scale-95";
 
     useEffect(() => {
-        if (ModalContentType !== "close") {
-            setIsOpen_animeClass(true);
-        }
+        // firefoxだとopen時のアニメーションが効かないので遅延を入れる
+        const timer = setTimeout(() => {
+            if (ModalContentType !== "close") {
+                setIsOpen_animeClass(true);
+            }
+        }, 10);
+        return () => clearTimeout(timer);
     }, [ModalContentType]);
 
     if (ModalContentType === "close") {
@@ -36,7 +39,7 @@ export default function ModalWindow({ messageSend }) {
                     {ModalContentType !== "image" && <PostForm messageSend={messageSend} />}
                 </div>
                 <div className="ml-auto">
-                    <button className={`BATSU relative mt-2 ${buttonClass_anime}`} />
+                    <button className="BATSU BUTTON_ACTION_common relative mt-2" />
                 </div>
             </div>
         </div>
