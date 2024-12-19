@@ -9,11 +9,7 @@ use utf8;
     use base qw(HTTP::Server::Simple::CGI);
     use JSON;
     use lib './lib';
-    use Data::Dumper;
-    use File::Basename;
-    use File::Spec;
     use File::Copy;
-    use File::Path;
     use File::Temp qw/ tempfile /;
     use CampBbs::Image::IntegrityValidator qw(validate_image_integrity);
 
