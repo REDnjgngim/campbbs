@@ -1,4 +1,5 @@
 import React from "react";
+import Linkify from "linkify-react";
 import { useDispatch, useSelector } from "react-redux";
 import { formInitial } from "./redux/formTypeParamSlice";
 import { modalToggle } from "./redux/modalWindowSlice";
@@ -88,11 +89,19 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         }
 
         const formatedContent = (content) => {
+            const linkifyOptions = {
+                className: "text-blue-600 underline",
+                target: {
+                    url: "_blank",
+                },
+            };
+
             const texts = content.split("\n").map((item, index) => {
                 return (
-                    <React.Fragment key={index}>
-                        {item} <br />
-                    </React.Fragment>
+                    <Linkify key={index} options={linkifyOptions}>
+                        {item}
+                        <br />
+                    </Linkify>
                 );
             });
             return <>{texts}</>;
