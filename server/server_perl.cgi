@@ -134,6 +134,9 @@ use utf8;
             my @campIds = ($campNo, @{$newMessage_json->{"targetCampIds"}});
             my $imagePATH = "$campBbsData_FILEPATH/image";
 
+            my $master_params = read_file_with_lock("./campBbsData/" . hako_type($hako_idx) . "/master_params.json");
+            my $master_params_json = decode_json($master_params);
+
             if($newMessage_json->{"parentId"}){
                 # 返信時は先に返信先のメッセージがあるかだけチェック
                 existing_messageNo($bbsTable_log->{$campNo}, $newMessage_json->{"parentId"});
@@ -195,7 +198,19 @@ use utf8;
                     # 新規投稿
                     push(@{$current}, {$newMessageForCamp->{"No"} => {}});
                 }
+
+                # 陣営掲示板の最新投稿時刻を記録
+                my $campList = $master_params_json->{"camp"};
+                for(0..$#{$campList}){
+                    if($campList->[$_]{"id"} == $campId){
+                        $campList->[$_]{"newestMessageTime"} = $newMessageForCamp->{"writenTime"};
+                        last;
+                    }
+                }
             }
+
+            # master_params更新
+            write_file_with_lock("./campBbsData/" . hako_type($hako_idx) . "/master_params.json", encode_json($master_params_json), ">");
 
             # 最後に画像を保存
             for(my $i = 0; $i <= $#{$validImages}; $i++){
