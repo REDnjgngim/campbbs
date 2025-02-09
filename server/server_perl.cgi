@@ -10,6 +10,7 @@ use utf8;
     use JSON;
     use lib './lib';
     use File::Copy;
+    use File::Path;
     use File::Temp qw/ tempfile /;
     use CampBbs::Image::IntegrityValidator qw(validate_image_integrity);
 
@@ -47,7 +48,7 @@ use utf8;
 
             is_valid_camp_id_check($campNo, $hako_idx);
 
-            if (!(-d $campBbsData_FILEPATH)) {
+            if (!(-d "$campBbsData_FILEPATH/image")) {
                 # 初めてなのでディレクトリとファイルを作成
                 mkpath("$campBbsData_FILEPATH/image") or handleException_exit("Cannot create directory", $!);
                 write_file_with_lock("$campBbsData_FILEPATH/campBbsLog.json", encode_json({"$campNo"}), ">");
