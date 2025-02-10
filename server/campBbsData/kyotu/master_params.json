@@ -1,10 +1,1 @@
-{
-    "eventNo": 18,
-    "islandTurn": 67,
-    "transitionableTime": 2556111599,
-    "camp": [
-        { "id": 1, "name": "魏", "mark": "∀" },
-        { "id": 2, "name": "呉", "mark": "Ψ" },
-        { "id": 3, "name": "蜀", "mark": "Ж" }
-    ]
-}
+{"islandTurn":67,"camp":[{"name":"魏","id":1,"mark":"∀","newestMessageTime":1739110772},{"name":"呉","id":2,"mark":"Ψ","newestMessageTime":2556111599},{"id":3,"name":"蜀","newestMessageTime":2556111599,"mark":"Ж"}],"transitionableTime":2556111599,"eventNo":18}
