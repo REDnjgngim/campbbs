@@ -9,6 +9,7 @@ use CGI;
 my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = certification();
 my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx);
 script_output($paramHTML);
+campViewLastTime_update($islandId, $hako_idx);
 
 sub certification {
 
@@ -133,6 +134,36 @@ sub script_output {
         print join("", @index_html);
     } else {
         error_page("インデックスファイルが存在しません。管理人へご連絡ください");
+    }
+}
+
+sub campViewLastTime_update {
+    ($islandId, $hako_idx) == @_;
+
+    my $master_params_json = import_master_params_json($hako_idx);
+    my @user_tables;
+    if (open(my $IN, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv")) {
+		@user_tables = <$IN>;
+	    close($IN);
+    }else{
+        # 最終閲覧時刻は更新出来ないが掲示板は閲覧可能
+        return;
+    }
+
+    for (0..$#user_tables){
+        if($user_tables[$_] =~ /^$islandId/){
+            my $viewTime = time();
+            $user_tables[$_] =~ s/\,\d+$/\,$viewTime/;
+            last;
+        }
+    }
+
+	if (open(my $OUT, ">:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv")) {
+		print $OUT join("", @user_tables);
+	    close($OUT);
+    }else{
+        # 最終閲覧時刻は更新出来ないが掲示板は閲覧可能
+        return;
     }
 }
 
