@@ -112,6 +112,7 @@ sub param_set {
         window.islandTurn = $master_params_json->{'islandTurn'};
         window.hako_idx = $hako_idx;
         window.eventNo = $master_params_json->{'eventNo'};
+        window.gameEnd = $master_params_json->{'gameEnd'};
     PARAM
 
     return $param;
@@ -208,7 +209,7 @@ sub error_page {
 }
 
 sub hako_type {
-    $hako_idx = shift;
+    my $hako_idx = shift;
     if($hako_idx == 3){
         return "kyotu";
     }elsif($hako_idx == 6){
