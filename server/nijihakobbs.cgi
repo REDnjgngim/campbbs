@@ -83,8 +83,9 @@ sub certification {
         my $hako_idx = shift;
         my $master_params_json = import_master_params_json($hako_idx);
         my $current_time = time();
-        if($current_time > $master_params_json->{'transitionableTime'}){
-            # 閲覧可能時刻はゲーム終了後から72時間を想定(箱庭による)
+        my $suspendTime = 3600 * 24 * 3;
+        if($master_params_json->{'gameEnd'} && $current_time > $master_params_json->{'transitionableTime'} + $suspendTime){
+            # 開発画面からの陣営掲示板の使用可能時刻はゲーム終了後から72時間を想定
             error_page("ゲーム終了から一定期間が過ぎたため使用できません。");
         }
     }
