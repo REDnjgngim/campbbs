@@ -6,17 +6,17 @@ use utf8;
 use JSON;
 use CGI;
 
-my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = certification();
-my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx);
+my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo) = certification();
+my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo);
 script_output($paramHTML);
-campViewLastTime_update($islandId, $hako_idx);
+campViewLastTime_update($islandId, $hako_idx, $eventNo);
 
 sub certification {
 
     my ($hako_idx) = check_referer();
-    my ($id, $CampId, $name, $viewLastTime) = check_island($hako_idx);
-    check_transitionable($hako_idx);
-    return ($id, $CampId, $name, $viewLastTime, $hako_idx);
+    my ($id, $CampId, $name, $viewLastTime, $eventNo) = check_island($hako_idx);
+    check_transitionable($hako_idx, $eventNo);
+    return ($id, $CampId, $name, $viewLastTime, $hako_idx, $eventNo);
 
     sub check_referer {
         my $hako_idx = 0;
@@ -52,14 +52,15 @@ sub certification {
         my $cgi = CGI->new();
         my %FORM = $cgi->Vars();
         my $success = 0;
-        my $islandId = $FORM{'id'};
-        my $islandPassword = $FORM{'password'};
+        my ($islandId, $islandPassword, $eventNo) = (
+            $FORM{'id'}, $FORM{'password'}, $FORM{'hako'}
+        );
         my $islandCampId = "";
         my $islandName = "";
         my $campViewLastTime = 0;
-        my $master_params_json = import_master_params_json($hako_idx);
+        my $master_params_json = import_master_params_json($hako_idx, $eventNo);
 
-        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv") or die $!;
+        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv") or die $!;
             while (my $record = <$fh>) {
                 my ($id, $password, $campId, $name, $timestamp) = split(',', $record);
                 if($id == $islandId && $password eq $islandPassword){
@@ -76,12 +77,12 @@ sub certification {
             error_page("不正なアクセスです");
         }
 
-        return ($islandId, $islandCampId, $islandName, $campViewLastTime);
+        return ($islandId, $islandCampId, $islandName, $campViewLastTime, $eventNo);
     }
 
     sub check_transitionable {
-        my $hako_idx = shift;
-        my $master_params_json = import_master_params_json($hako_idx);
+        my ($hako_idx, $eventNo) = @_;
+        my $master_params_json = import_master_params_json($hako_idx, $eventNo);
         my $current_time = time();
         my $suspendTime = 3600 * 24 * 3;
         if($master_params_json->{'gameEnd'} && $current_time > $master_params_json->{'transitionableTime'} + $suspendTime){
@@ -92,9 +93,9 @@ sub certification {
 }
 
 sub param_set {
-    my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = @_;
+    my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo) = @_;
 
-    my $master_params_json = import_master_params_json($hako_idx);
+    my $master_params_json = import_master_params_json($hako_idx, $eventNo);
     # 陣営を整形
     my $campListsHTML = "";
     foreach my $record (@{$master_params_json->{"camp"}}) {
@@ -111,7 +112,7 @@ sub param_set {
         ];
         window.islandTurn = $master_params_json->{'islandTurn'};
         window.hako_idx = $hako_idx;
-        window.eventNo = $master_params_json->{'eventNo'};
+        window.eventNo = $eventNo;
         window.gameEnd = $master_params_json->{'gameEnd'};
     PARAM
 
@@ -140,11 +141,11 @@ sub script_output {
 }
 
 sub campViewLastTime_update {
-    ($islandId, $hako_idx) == @_;
+    ($islandId, $hako_idx, $eventNo) == @_;
 
-    my $master_params_json = import_master_params_json($hako_idx);
+    my $master_params_json = import_master_params_json($hako_idx, $eventNo);
     my @user_tables;
-    if (open(my $IN, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv")) {
+    if (open(my $IN, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv")) {
 		@user_tables = <$IN>;
 	    close($IN);
     }else{
@@ -160,7 +161,7 @@ sub campViewLastTime_update {
         }
     }
 
-	if (open(my $OUT, ">:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv")) {
+	if (open(my $OUT, ">:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv")) {
 		print $OUT join("", @user_tables);
 	    close($OUT);
     }else{
@@ -172,7 +173,7 @@ sub campViewLastTime_update {
 sub import_master_params_json {
     my $hako_idx = shift;
     my $master_params;
-    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/master_params.json")) {
+    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/master_params.json")) {
         local $/;
         $master_params = <$fh>;
         close $fh;

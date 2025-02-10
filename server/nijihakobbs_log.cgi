@@ -13,7 +13,7 @@ script_output($paramHTML);
 sub certification {
     my $cgi = CGI->new();
     my %URLparams = $cgi->Vars();
-    my $master_params_json = import_master_params_json($URLparams{'hako'});
+    my $master_params_json = import_master_params_json($URLparams{'hako'}, $URLparams{'eventNo'});
     if($URLparams{'eventNo'} == $master_params_json->{'eventNo'} && !$master_params_json->{'gameEnd'}){
         # 現在ゲーム進行中の掲示板は閲覧不可
         error_page("不正なアクセスです");
@@ -24,7 +24,7 @@ sub param_set {
     my $cgi = CGI->new();
     my %URLparams = $cgi->Vars();
 
-    my $master_params_json = import_master_params_json($URLparams{'hako'});
+    my $master_params_json = import_master_params_json($URLparams{'hako'}, $URLparams{'eventNo'});
     # 陣営を整形
     my $campListsHTML = "";
     foreach my $record (@{$master_params_json->{"camp"}}) {
@@ -72,9 +72,9 @@ sub script_output {
 }
 
 sub import_master_params_json {
-    my $hako_idx = shift;
+    my ($hako_idx, $eventNo) = @_;
     my $master_params;
-    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/master_params.json")) {
+    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/master_params.json")) {
         local $/;
         $master_params = <$fh>;
         close $fh;
