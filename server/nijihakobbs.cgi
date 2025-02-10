@@ -58,7 +58,6 @@ sub certification {
         my $islandCampId = "";
         my $islandName = "";
         my $campViewLastTime = 0;
-        my $master_params_json = import_master_params_json($hako_idx, $eventNo);
 
         open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv") or die $!;
             while (my $record = <$fh>) {
@@ -141,9 +140,8 @@ sub script_output {
 }
 
 sub campViewLastTime_update {
-    ($islandId, $hako_idx, $eventNo) == @_;
+    my ($islandId, $hako_idx, $eventNo) == @_;
 
-    my $master_params_json = import_master_params_json($hako_idx, $eventNo);
     my @user_tables;
     if (open(my $IN, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv")) {
 		@user_tables = <$IN>;
