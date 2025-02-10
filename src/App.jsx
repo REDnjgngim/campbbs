@@ -22,7 +22,7 @@ const selectNewbbsTable = createSelector(
 
 function App() {
     const HAKONIWAData = useSelector((state) => state.HAKONIWAData);
-    const { campId, campLists, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
+    const { campId, campLists, hako_idx, eventNo, gameEnd } = useSelector((state) => state.HAKONIWAData);
     const newbbsTable = useSelector(selectNewbbsTable);
     const [updateCampBbsTable] = useUpdateCampBbsTableMutation();
     const dispatch = useDispatch();
@@ -148,7 +148,7 @@ function App() {
         <div className="App">
             <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
             <BbsMessages messageSend={messageSend} GET_TIMELINES={GET_TIMELINES} />
-            <FixedFooterButtons fetchQuery={bbsTableFetch} />
+            {!gameEnd && <FixedFooterButtons fetchQuery={bbsTableFetch} />}
             <ModalWindow messageSend={messageSend} />
             <Toast />
         </div>
