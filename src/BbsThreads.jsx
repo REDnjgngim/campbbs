@@ -16,7 +16,7 @@ const selectNewbbsTable = createSelector(
 export default function BbsMessages({ messageSend, GET_TIMELINES }) {
     const newbbsTable = useSelector(selectNewbbsTable);
 
-    const { islandId, campId, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
+    const { islandId, campId, hako_idx, eventNo, gameEnd } = useSelector((state) => state.HAKONIWAData);
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
     const isGetPageSkip = useRef(false);
 
@@ -87,6 +87,7 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
         return (
             <div>
                 {isLoading && <div className="LOADING-CIRCLE size-10"></div>}
+
                 {!isLoading && error && (
                     <>
                         エラーが発生しました。
@@ -94,11 +95,18 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
                         再度読み込み直してください。
                     </>
                 )}
+
                 {!isLoading && !error && (
                     <>
-                        まだメッセージがありません。
-                        <br />
-                        新規投稿ボタンからメッセージを投稿しましょう！
+                        {gameEnd ? (
+                            <>投稿されたメッセージはありませんでした。</>
+                        ) : (
+                            <>
+                                まだメッセージがありません。
+                                <br />
+                                新規投稿ボタンからメッセージを投稿しましょう！
+                            </>
+                        )}
                     </>
                 )}
             </div>
