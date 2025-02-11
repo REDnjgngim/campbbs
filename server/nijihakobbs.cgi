@@ -139,35 +139,6 @@ sub script_output {
     }
 }
 
-sub campViewLastTime_update {
-    my ($islandId, $hako_idx, $eventNo) == @_;
-
-    my @user_tables;
-    if (open(my $IN, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv")) {
-		@user_tables = <$IN>;
-	    close($IN);
-    }else{
-        # 最終閲覧時刻は更新出来ないが掲示板は閲覧可能
-        return;
-    }
-
-    for (0..$#user_tables){
-        if($user_tables[$_] =~ /^$islandId/){
-            my $viewTime = time();
-            $user_tables[$_] =~ s/\,\d+$/\,$viewTime/;
-            last;
-        }
-    }
-
-	if (open(my $OUT, ">:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv")) {
-		print $OUT join("", @user_tables);
-	    close($OUT);
-    }else{
-        # 最終閲覧時刻は更新出来ないが掲示板は閲覧可能
-        return;
-    }
-}
-
 sub import_master_params_json {
     my $hako_idx = shift;
     my $master_params;

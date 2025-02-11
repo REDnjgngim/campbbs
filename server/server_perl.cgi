@@ -44,7 +44,7 @@ use utf8;
 
         sub get_api {
             my ($cgi, $campBbsData_FILEPATH) = @_;
-            my ($hako_idx, $eventNo, $campNo, $begin, $end) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)/;  # パスを分割
+            my ($hako_idx, $eventNo, $campNo, $begin, $end, $islandId) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)\/islandId\/(\d+)/;  # パスを分割
 
             is_valid_camp_id_check($campNo, $campBbsData_FILEPATH);
 
@@ -74,6 +74,9 @@ use utf8;
             # タイムラインを基準に必要なメッセージを抽出
             my @log_filtered = log_filtered($log_json->{$campNo}, \@timeline_threads);
             my $camp_log = encode_json(\@log_filtered);
+
+            # 最終閲覧時刻を更新
+            campbbsViewLastTime_update($campBbsData_FILEPATH, $islandId);
 
             # 出力
             return ($camp_log, $camp_timeline);
@@ -210,7 +213,9 @@ use utf8;
             }
 
             # master_params更新
-            write_file_with_lock("$campBbsData_FILEPATH/master_params.json", encode_json($master_params_json), ">");
+            if (-e "$campBbsData_FILEPATH/master_params.json") {
+                write_file_with_lock("$campBbsData_FILEPATH/master_params.json", encode_json($master_params_json), ">");
+            }
 
             # 最後に画像を保存
             for(my $i = 0; $i <= $#{$validImages}; $i++){
@@ -556,6 +561,23 @@ use utf8;
             print "Content-Type: text/plain\n\n";
             print "Bad Request";
             die;
+        }
+
+        sub campbbsViewLastTime_update {
+            my ($campBbsData_FILEPATH, $islandId) = @_;
+
+            return if ($islandId == 0 || !(-e "$campBbsData_FILEPATH/users.csv"));
+
+            my $users = read_file_with_lock("$campBbsData_FILEPATH/users.csv");
+            my @user_tables = split(/\n/, $users);
+            for (0..$#user_tables){
+                if($user_tables[$_] =~ /^$islandId\,/){
+                    my $viewTime = time();
+                    $user_tables[$_] =~ s/\,\d+$/\,$viewTime/;
+                    write_file_with_lock("$campBbsData_FILEPATH/users.csv", join("\n", @user_tables), ">");
+                    last;
+                }
+            }
         }
 
         sub hako_type {

@@ -16,7 +16,7 @@ const selectNewbbsTable = createSelector(
 export default function BbsMessages({ messageSend, GET_TIMELINES }) {
     const newbbsTable = useSelector(selectNewbbsTable);
 
-    const { campId, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
+    const { islandId, campId, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
     const isGetPageSkip = useRef(false);
 
@@ -32,6 +32,7 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
             eventNo,
             startIndex: getTimelineIndex + GET_TIMELINES - (GET_TIMELINES - 1), // 初期値は 1
             endIndex: getTimelineIndex + GET_TIMELINES,
+            islandId,
         },
         { skip: isGetPageSkip.current },
     );

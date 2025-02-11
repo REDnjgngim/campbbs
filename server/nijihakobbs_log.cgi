@@ -34,7 +34,7 @@ sub param_set {
     my $campViewLastTime = time();
 
     my $param = <<"    PARAM";
-        window.islandId = null;
+        window.islandId = 0;
         window.islandName = null;
         window.campId = "$URLparams{'campId'}";
         window.viewLastTime = $campViewLastTime;
