@@ -14,7 +14,7 @@ sub certification {
     my $cgi = CGI->new();
     my %URLparams = $cgi->Vars();
     my $master_params_json = import_master_params_json($URLparams{'hako'}, $URLparams{'eventNo'});
-    if($URLparams{'eventNo'} == $master_params_json->{'eventNo'} && !$master_params_json->{'gameEnd'}){
+    if(!$master_params_json->{'gameEnd'}){
         # 現在ゲーム進行中の掲示板は閲覧不可
         error_page("不正なアクセスです");
     }
