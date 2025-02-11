@@ -82,9 +82,7 @@ sub certification {
     sub check_transitionable {
         my ($hako_idx, $eventNo) = @_;
         my $master_params_json = import_master_params_json($hako_idx, $eventNo);
-        my $current_time = time();
-        my $suspendTime = 3600 * 24 * 3;
-        if($master_params_json->{'gameEnd'} && $current_time > $master_params_json->{'transitionableTime'} + $suspendTime){
+        if(gameEndFlg($master_params_json)){
             # 開発画面からの陣営掲示板の使用可能時刻はゲーム終了後から72時間を想定
             error_page("ゲーム終了から一定期間が過ぎたため使用できません。");
         }
@@ -101,6 +99,9 @@ sub param_set {
         $campListsHTML .= "{ id: \"$record->{'id'}\", name: \"$record->{'name'}\", mark: \"$record->{'mark'}\" },\n";
     }
 
+    my $gameEndFlg = gameEndFlg($master_params_json);
+    $gameEndFlg = $gameEndFlg ? "true" : "false"; # js代入用
+
     my $param = <<"    PARAM";
         window.islandId = $islandId;
         window.islandName = "$islandName";
@@ -112,7 +113,7 @@ sub param_set {
         window.islandTurn = $master_params_json->{'islandTurn'};
         window.hako_idx = $hako_idx;
         window.eventNo = $eventNo;
-        window.gameEnd = $master_params_json->{'gameEnd'};
+        window.gameEnd = $gameEndFlg;
     PARAM
 
     return $param;
@@ -187,4 +188,11 @@ sub hako_type {
     }elsif($hako_idx == 11){
         return "sea";
     }
+}
+
+sub gameEndFlg {
+    my $params = shift;
+    my $current_time = time();
+    my $suspendTime = 3600 * 24 * 3; # 最終更新時刻から遷移可能な時間
+    return ($params->{'gameEnd'} && $current_time > $params->{'transitionableTime'} + $suspendTime) ? 1 : 0;
 }
