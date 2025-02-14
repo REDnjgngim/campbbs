@@ -11,6 +11,7 @@ export const HAKONIWADataSlice = createSlice({
         islandTurn: window.islandTurn,
         hako_idx: window.hako_idx,
         eventNo: window.eventNo,
+        gameEnd: window.gameEnd,
     },
     setParam: (state, action) => {
         state.islandId = action.payload.islandId;

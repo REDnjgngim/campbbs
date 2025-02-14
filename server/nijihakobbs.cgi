@@ -6,17 +6,17 @@ use utf8;
 use JSON;
 use CGI;
 
-my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = certification();
-my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx);
+my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo) = certification();
+my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo);
 script_output($paramHTML);
-campViewLastTime_update($islandId, $hako_idx);
+campViewLastTime_update($islandId, $hako_idx, $eventNo);
 
 sub certification {
 
     my ($hako_idx) = check_referer();
-    my ($id, $CampId, $name, $viewLastTime) = check_island($hako_idx);
-    check_transitionable($hako_idx);
-    return ($id, $CampId, $name, $viewLastTime, $hako_idx);
+    my ($id, $CampId, $name, $viewLastTime, $eventNo) = check_island($hako_idx);
+    check_transitionable($hako_idx, $eventNo);
+    return ($id, $CampId, $name, $viewLastTime, $hako_idx, $eventNo);
 
     sub check_referer {
         my $hako_idx = 0;
@@ -52,14 +52,14 @@ sub certification {
         my $cgi = CGI->new();
         my %FORM = $cgi->Vars();
         my $success = 0;
-        my $islandId = $FORM{'id'};
-        my $islandPassword = $FORM{'password'};
+        my ($islandId, $islandPassword, $eventNo) = (
+            $FORM{'id'}, $FORM{'password'}, $FORM{'hako'}
+        );
         my $islandCampId = "";
         my $islandName = "";
         my $campViewLastTime = 0;
-        my $master_params_json = import_master_params_json($hako_idx);
 
-        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv") or die $!;
+        open (my $fh, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/users.csv") or die $!;
             while (my $record = <$fh>) {
                 my ($id, $password, $campId, $name, $timestamp) = split(',', $record);
                 if($id == $islandId && $password eq $islandPassword){
@@ -76,29 +76,31 @@ sub certification {
             error_page("不正なアクセスです");
         }
 
-        return ($islandId, $islandCampId, $islandName, $campViewLastTime);
+        return ($islandId, $islandCampId, $islandName, $campViewLastTime, $eventNo);
     }
 
     sub check_transitionable {
-        my $hako_idx = shift;
-        my $master_params_json = import_master_params_json($hako_idx);
-        my $current_time = time();
-        if($current_time > $master_params_json->{'transitionableTime'}){
-            # 閲覧可能時刻はゲーム終了後から72時間を想定(箱庭による)
+        my ($hako_idx, $eventNo) = @_;
+        my $master_params_json = import_master_params_json($hako_idx, $eventNo);
+        if(gameEndFlg($master_params_json)){
+            # 開発画面からの陣営掲示板の使用可能時刻はゲーム終了後から72時間を想定
             error_page("ゲーム終了から一定期間が過ぎたため使用できません。");
         }
     }
 }
 
 sub param_set {
-    my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx) = @_;
+    my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo) = @_;
 
-    my $master_params_json = import_master_params_json($hako_idx);
+    my $master_params_json = import_master_params_json($hako_idx, $eventNo);
     # 陣営を整形
     my $campListsHTML = "";
     foreach my $record (@{$master_params_json->{"camp"}}) {
         $campListsHTML .= "{ id: \"$record->{'id'}\", name: \"$record->{'name'}\", mark: \"$record->{'mark'}\" },\n";
     }
+
+    my $gameEndFlg = gameEndFlg($master_params_json);
+    $gameEndFlg = $gameEndFlg ? "true" : "false"; # js代入用
 
     my $param = <<"    PARAM";
         window.islandId = $islandId;
@@ -110,7 +112,8 @@ sub param_set {
         ];
         window.islandTurn = $master_params_json->{'islandTurn'};
         window.hako_idx = $hako_idx;
-        window.eventNo = $master_params_json->{'eventNo'};
+        window.eventNo = $eventNo;
+        window.gameEnd = $gameEndFlg;
     PARAM
 
     return $param;
@@ -137,40 +140,10 @@ sub script_output {
     }
 }
 
-sub campViewLastTime_update {
-    ($islandId, $hako_idx) == @_;
-
-    my $master_params_json = import_master_params_json($hako_idx);
-    my @user_tables;
-    if (open(my $IN, "<:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv")) {
-		@user_tables = <$IN>;
-	    close($IN);
-    }else{
-        # 最終閲覧時刻は更新出来ないが掲示板は閲覧可能
-        return;
-    }
-
-    for (0..$#user_tables){
-        if($user_tables[$_] =~ /^$islandId/){
-            my $viewTime = time();
-            $user_tables[$_] =~ s/\,\d+$/\,$viewTime/;
-            last;
-        }
-    }
-
-	if (open(my $OUT, ">:encoding(UTF-8)", "./campBbsData/" . hako_type($hako_idx) . "/event" .  $master_params_json->{'eventNo'} . "/users.csv")) {
-		print $OUT join("", @user_tables);
-	    close($OUT);
-    }else{
-        # 最終閲覧時刻は更新出来ないが掲示板は閲覧可能
-        return;
-    }
-}
-
 sub import_master_params_json {
     my $hako_idx = shift;
     my $master_params;
-    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/master_params.json")) {
+    if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/master_params.json")) {
         local $/;
         $master_params = <$fh>;
         close $fh;
@@ -207,7 +180,7 @@ sub error_page {
 }
 
 sub hako_type {
-    $hako_idx = shift;
+    my $hako_idx = shift;
     if($hako_idx == 3){
         return "kyotu";
     }elsif($hako_idx == 6){
@@ -215,4 +188,11 @@ sub hako_type {
     }elsif($hako_idx == 11){
         return "sea";
     }
+}
+
+sub gameEndFlg {
+    my ($params, $eventNo) = @_;
+    my $current_time = time();
+    my $suspendTime = 3600 * 24 * 3; # 最終更新時刻から遷移可能な時間
+    return ($params->{'gameEnd'} && $current_time > $params->{'transitionableTime'} + $suspendTime) ? 1 : 0;
 }

@@ -48,16 +48,16 @@ export const campApi = createApi({
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({
         getAllCampBbsTable: builder.query({
-            query: ({ campId, hako_idx, eventNo, endIndex }) => ({
+            query: ({ campId, hako_idx, eventNo, endIndex, islandId }) => ({
                 method: "get",
-                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/begin/1/end/${endIndex}`,
+                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/begin/1/end/${endIndex}/islandId/${islandId}`,
                 isReload: true,
             }),
         }),
         getPageCampBbsTable: builder.query({
-            query: ({ campId, hako_idx, eventNo, startIndex, endIndex }) => ({
+            query: ({ campId, hako_idx, eventNo, startIndex, endIndex, islandId }) => ({
                 method: "get",
-                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/begin/${startIndex}/end/${endIndex}`,
+                url: `/api/hako/${hako_idx}/eventNo/${eventNo}/camps/${campId}/begin/${startIndex}/end/${endIndex}/islandId/${islandId}`,
                 isReload: false,
             }),
         }),

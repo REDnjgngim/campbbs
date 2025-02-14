@@ -6,7 +6,7 @@ import { modalToggle } from "./redux/modalWindowSlice";
 
 export default function Message({ messageData, indent, isFixed, messageSend }) {
     const ownIslandId = useSelector((state) => state.HAKONIWAData.islandId);
-    const { campId, viewLastTime, campLists, hako_idx, eventNo } = useSelector((state) => state.HAKONIWAData);
+    const { campId, viewLastTime, campLists, hako_idx, eventNo, gameEnd } = useSelector((state) => state.HAKONIWAData);
     const {
         No,
         title,
@@ -148,7 +148,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         });
 
         return (
-            !isDeletedMessage && (
+            !isDeletedMessage &&
+            !gameEnd && (
                 <div className="m-0.5 flex items-end pb-1">
                     {!isFixed && (
                         <button
