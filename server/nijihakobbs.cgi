@@ -191,7 +191,7 @@ sub hako_type {
 }
 
 sub gameEndFlg {
-    my $params = shift;
+    my ($params, $eventNo) = @_;
     my $current_time = time();
     my $suspendTime = 3600 * 24 * 3; # 最終更新時刻から遷移可能な時間
     return ($params->{'gameEnd'} && $current_time > $params->{'transitionableTime'} + $suspendTime) ? 1 : 0;
