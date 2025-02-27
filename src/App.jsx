@@ -142,11 +142,16 @@ function App() {
     }, []);
 
     const index = campLists.findIndex((list) => list.id === campId);
-    const LBBSTITLE = `${campLists[index].mark}${campLists[index].name} 掲示板`;
+    const CAMPNAME = (
+        <>
+            <span style={{ color: campLists[index].color }}>{`${campLists[index].mark}`}</span>
+            {campLists[index].name}
+        </>
+    );
 
     return (
         <div className="App">
-            <h1 className="mb-8 text-2xl font-bold">{LBBSTITLE}</h1>
+            <h1 className="mb-8 text-2xl font-bold">{CAMPNAME} 掲示板</h1>
             <BbsMessages messageSend={messageSend} GET_TIMELINES={GET_TIMELINES} />
             {!gameEnd && <FixedFooterButtons fetchQuery={bbsTableFetch} />}
             <ModalWindow messageSend={messageSend} />

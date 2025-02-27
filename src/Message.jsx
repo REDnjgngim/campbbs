@@ -73,18 +73,29 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         };
         const imgPATH = `../server/campBbsData/${hako_type(hako_idx)}/event${eventNo}/image/`;
 
+        const setCAMPNAME = (index) => (
+            <>
+                <span style={{ color: campLists[index].color }}>{`${campLists[index].mark}`}</span>
+                {campLists[index].name}
+            </>
+        );
+
         if (isDiplomacyMessage) {
             if (writenCampId !== campId) {
-                let { name, mark } = campLists[writenCampId];
-                diplomacyCampName = `${mark}${name}から【外交文書】が届いています。`;
+                let CAMPNAME = setCAMPNAME(writenCampId);
+                diplomacyCampName = <>{CAMPNAME}から【外交文書】が届いています。</>;
             } else {
                 let targetCampName = [];
                 targetCampIds.forEach((id) => {
                     let index = campLists.findIndex((list) => list.id === id);
-                    let { name, mark } = campLists[index];
-                    targetCampName.push(`${mark}${name}`);
+                    targetCampName.push(setCAMPNAME(index));
                 });
-                diplomacyCampName = targetCampName.join("、") + `に【外交文書】を送信しました。`;
+                diplomacyCampName = (
+                    <>
+                        {targetCampName.reduce((prev, curr) => [prev, "、", curr])}
+                        に【外交文書】を送信しました。
+                    </>
+                );
             }
         }
 
