@@ -46,7 +46,7 @@ use utf8;
             my ($cgi, $campBbsData_FILEPATH) = @_;
             my ($hako_idx, $eventNo, $campNo, $begin, $end, $islandId) = ($cgi->path_info()) =~ /\/hako\/(\d+)\/eventNo\/(\d+)\/camps\/(\d+)\/begin\/(\d+)\/end\/(\d+)\/islandId\/(\d+)/;  # パスを分割
 
-            is_valid_camp_id_check($campNo, $campBbsData_FILEPATH);
+            is_valid_camp_id_check($campNo, $campBbsData_FILEPATH, $islandId);
 
             if (!(-d "$campBbsData_FILEPATH/image")) {
                 # 初めてなのでディレクトリとファイルを作成
@@ -111,7 +111,7 @@ use utf8;
             my ($log, $timeline);
             my ($camp_log, $camp_timeline) = ("{}", "{}");
 
-            is_valid_camp_id_check($campNo, $campBbsData_FILEPATH);
+            is_valid_camp_id_check($campNo, $campBbsData_FILEPATH, $newMessage_json->{'islandId'});
 
             # 念の為ファイルの存在チェック
             if (-e "$campBbsData_FILEPATH/campBbsLog.json" && -e "$campBbsData_FILEPATH/campBbsTimeline.json") {
@@ -514,15 +514,28 @@ use utf8;
         }
 
         sub is_valid_camp_id_check {
-            my ($campId, $campBbsData_FILEPATH) = @_;
-            my $campIdsFile = "$campBbsData_FILEPATH/master_params.json";
-            my $params = read_file_with_lock($campIdsFile);
+            my ($campId, $campBbsData_FILEPATH, $islandId) = @_;
+            # 陣営が存在しているか確認
+            my $master_params_file = "$campBbsData_FILEPATH/master_params.json";
+            my $params = read_file_with_lock($master_params_file);
             my $params_json = decode_json($params);
 
-            my $isValid = grep { $_->{'id'} == $campId } @{$params_json->{'camp'}};
+            my $isValidCampId = grep { $_->{'id'} == $campId } @{$params_json->{'camp'}};
 
-            unless($isValid){
+            unless($isValidCampId){
                 handleException_exit("invalid_camp_id", $campId);
+            }
+
+            return if(!$islandId);
+
+            # 閲覧している陣営掲示板と現在所属している陣営が一致しているか確認
+            my $users_file = "$campBbsData_FILEPATH/users.csv";
+            my $users = read_file_with_lock($users_file);
+            my @user_tables = split(/\n/, $users);
+            my $isMatchCampId = grep { $_ =~ /^$islandId\,.+?\,$campId\,/ } @user_tables;
+
+            unless($isMatchCampId){
+                handleException_exit("different_camp_id", $campId);
             }
         }
 
