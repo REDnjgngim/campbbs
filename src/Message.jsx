@@ -82,7 +82,8 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
 
         if (isDiplomacyMessage) {
             if (writenCampId !== campId) {
-                let CAMPNAME = setCAMPNAME(writenCampId);
+                let index = campLists.findIndex((list) => list.id === writenCampId);
+                let CAMPNAME = setCAMPNAME(index);
                 diplomacyCampName = <>{CAMPNAME}から【外交文書】が届いています。</>;
             } else {
                 let targetCampName = [];
