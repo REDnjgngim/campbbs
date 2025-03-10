@@ -141,7 +141,7 @@ sub script_output {
 }
 
 sub import_master_params_json {
-    my $hako_idx = shift;
+    my ($hako_idx, $eventNo) = @_;
     my $master_params;
     if (open(my $fh, "./campBbsData/" . hako_type($hako_idx) . "/event${eventNo}/master_params.json")) {
         local $/;
