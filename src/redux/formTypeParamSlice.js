@@ -24,7 +24,11 @@ class FormData {
 const initialize = (state, { formType, targetNo, messageData }) => {
     if (formType === "reply") {
         state[formType].title = `Re:[No.${targetNo}]への返信`;
-    } else if (formType === "edit" && state[formType].targetNo !== targetNo) {
+    } else if (
+        formType === "edit" &&
+        (state[formType].targetNo !== targetNo || state[formType].content === undefined)
+    ) {
+        // 異なるメッセージ、または編集後に再度同じメッセージを開いた時は、そのメッセージの情報を取り直す
         state[formType] = new FormData(
             messageData.title,
             messageData.owner,
@@ -43,8 +47,8 @@ const reset = (state, { formType }) => {
     if (formType === "pin" || formType === "delete") {
         return;
     }
-    state[formType].title = "";
-    state[formType].content = "";
+    delete state[formType].title;
+    delete state[formType].content;
 };
 
 export const formTypeParamSlice = createSlice({
