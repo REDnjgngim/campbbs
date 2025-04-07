@@ -160,10 +160,9 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
         });
 
         return (
-            !isDeletedMessage &&
-            !gameEnd && (
+            !isDeletedMessage && (
                 <div className="m-0.5 flex items-end pb-1">
-                    {!isFixed && (
+                    {!gameEnd && !isFixed && (
                         <button
                             className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
                             disabled={isLoadingState}
@@ -185,7 +184,7 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                             <span className="i-tabler-message-dots align-bottom text-2xl text-blue-900"></span>
                         </button>
                     )}
-                    {isOwnMessage && !isDiplomacyMessage && (
+                    {!gameEnd && isOwnMessage && !isDiplomacyMessage && (
                         <>
                             <button
                                 className={`m-0.5 ml-1 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
@@ -217,16 +216,18 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
                             </button>
                         </>
                     )}
-                    <button
-                        className={`m-0.5 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
-                        disabled={isLoadingState}
-                        onClick={() => messageSend(messageData, "pin")}
-                    >
-                        {isImportant && (
-                            <span className="i-tabler-pinned-off align-bottom text-2xl text-blue-900"></span>
-                        )}
-                        {!isImportant && <span className="i-tabler-pin align-bottom text-2xl text-blue-700"></span>}
-                    </button>
+                    {!gameEnd && (
+                        <button
+                            className={`m-0.5 p-1.5 ${!isLoadingState ? "BUTTON_ACTION_messageButton" : "brightness-75"}`}
+                            disabled={isLoadingState}
+                            onClick={() => messageSend(messageData, "pin")}
+                        >
+                            {isImportant && (
+                                <span className="i-tabler-pinned-off align-bottom text-2xl text-blue-900"></span>
+                            )}
+                            {!isImportant && <span className="i-tabler-pin align-bottom text-2xl text-blue-700"></span>}
+                        </button>
+                    )}
                     <span className="ml-auto mr-1">
                         [ ターン{writenTurn} ] {dateTime}
                     </span>
