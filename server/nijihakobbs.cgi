@@ -9,7 +9,6 @@ use CGI;
 my ($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo) = certification();
 my $paramHTML = param_set($islandId, $islandCampId, $islandName, $campViewLastTime, $hako_idx, $eventNo);
 script_output($paramHTML);
-campViewLastTime_update($islandId, $hako_idx, $eventNo);
 
 sub certification {
 
