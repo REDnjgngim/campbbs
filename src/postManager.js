@@ -60,7 +60,7 @@ function message_pin(messageData) {
 
     const message = important ? DIALOG_MESSAGE.unpin : DIALOG_MESSAGE.pin;
 
-    if (!confirm(`No.${No}の` + message)) {
+    if (!confirm(`No.${No}` + message)) {
         return false;
     }
 

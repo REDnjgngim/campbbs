@@ -222,21 +222,6 @@ use utf8;
                 my $fileName = $imageFileNames->[$i];
                 move($validImages->[$i], "$imagePATH/$fileName") or handleException_exit("image_save_failed_move_failed", $!);
             }
-
-            sub truncateStrings {
-                my ($message) = @_;
-                my %MAX_LENGTH = (
-                    'title' => 50,
-                    'owner' => 20,
-                    'content' => 1000,
-                );
-
-                foreach my $key (keys %MAX_LENGTH) {
-                    if(length($message->{$key}) > $MAX_LENGTH{$key}){
-                        $message->{$key} = substr($message->{$key}, 0, $MAX_LENGTH{$key});
-                    }
-                }
-            }
         }
 
         sub post_editMessage{
@@ -253,6 +238,8 @@ use utf8;
             my $editMessage = $bbsTable_log->{$campNo}[$messageIndex];
             foreach my $key (keys %{$newMessage_json}) {
                 next if($key eq "No");
+                # 文字数上限処理
+                truncateStrings($newMessage_json);
                 $editMessage->{$key} = $newMessage_json->{$key};
             }
         }
@@ -419,6 +406,24 @@ use utf8;
             my @log_filtered = grep { exists $search_hash{ $_->{"No"} } } @{$log_array};
 
             return @log_filtered;
+        }
+
+        sub truncateStrings {
+            my ($message) = @_;
+            my %MAX_LENGTH = (
+                'title' => 50,
+                'owner' => 20,
+                'content' => 1000,
+            );
+
+            # 末尾の不要な改行を削除してからカウント
+            $message->{'content'} =~ s/\n+$//sg;
+
+            foreach my $key (keys %MAX_LENGTH) {
+                if(length($message->{$key}) > $MAX_LENGTH{$key}){
+                    $message->{$key} = substr($message->{$key}, 0, $MAX_LENGTH{$key});
+                }
+            }
         }
 
         sub checkAndSet_images {
