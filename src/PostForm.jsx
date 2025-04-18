@@ -154,19 +154,20 @@ const SelectColor = React.memo(function MemoizedSelectColor({ textColor, handleI
 });
 
 const SelectCamp = React.memo(function MemoizedSelectCamp() {
-    const HcampLists = useSelector((state) => state.HAKONIWAData.campLists);
-    const HcampId = useSelector((state) => state.HAKONIWAData.campId);
+    const { campId, campLists } = useSelector((state) => state.HAKONIWAData);
 
     return (
         <div className="mb-2 flex items-center self-start">
             <div className="mr-3">送信先</div>
             <select className="border p-2" name="targetCampId">
-                {HcampLists.filter((camp) => camp.id !== HcampId).map((camp) => (
-                    <option key={camp.id} value={camp.id}>
-                        {camp.mark}
-                        {camp.name}
-                    </option>
-                ))}
+                {campLists
+                    .filter((camp) => camp.id !== campId && camp.isExist)
+                    .map((camp) => (
+                        <option key={camp.id} value={camp.id}>
+                            {camp.mark}
+                            {camp.name}
+                        </option>
+                    ))}
             </select>
         </div>
     );
