@@ -5,6 +5,9 @@ import { modalToggle } from "./redux/modalWindowSlice";
 export default function FixedFooterButtons({ fetchQuery }) {
     const dispatch = useDispatch();
     const isLoadingState = useSelector((state) => state.loadingState.isLoadingState);
+    const { campId, campLists } = useSelector((state) => state.HAKONIWAData);
+    // 自身以外の陣営が存在していない場合は外交文書ボタンを出さない
+    const isDiplomacyButtonVisible = campLists.filter((camp) => camp.id !== campId && camp.isExist).length >= 1;
 
     return (
         <>
@@ -25,20 +28,22 @@ export default function FixedFooterButtons({ fetchQuery }) {
                 >
                     新規投稿
                 </button>
-                <button
-                    className={`m-2 rounded border-none bg-blue-600 p-5 font-bold text-white shadow-md ${!isLoadingState ? "BUTTON_ACTION_common" : "brightness-75"}`}
-                    disabled={isLoadingState}
-                    onClick={() =>
-                        dispatch(
-                            modalToggle({
-                                modalType: "diplomacy",
-                                contentParam: "0",
-                            }),
-                        )
-                    }
-                >
-                    外交文書
-                </button>
+                {isDiplomacyButtonVisible && (
+                    <button
+                        className={`m-2 rounded border-none bg-blue-600 p-5 font-bold text-white shadow-md ${!isLoadingState ? "BUTTON_ACTION_common" : "brightness-75"}`}
+                        disabled={isLoadingState}
+                        onClick={() =>
+                            dispatch(
+                                modalToggle({
+                                    modalType: "diplomacy",
+                                    contentParam: "0",
+                                }),
+                            )
+                        }
+                    >
+                        外交文書
+                    </button>
+                )}
             </div>
         </>
     );
