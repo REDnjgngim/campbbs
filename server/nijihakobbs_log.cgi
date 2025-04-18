@@ -28,7 +28,7 @@ sub param_set {
     # 陣営を整形
     my $campListsHTML = "";
     foreach my $record (@{$master_params_json->{"camp"}}) {
-        $campListsHTML .= "{ id: \"$record->{'id'}\", name: \"$record->{'name'}\", mark: \"$record->{'mark'}\", color: \"$record->{'color'}\" },\n";
+        $campListsHTML .= "{ id: \"$record->{'id'}\", name: \"$record->{'name'}\", mark: \"$record->{'mark'}\", color: \"$record->{'color'}\", isExist: \"$record->{'isExist'}\" },\n";
     }
 
     my $campViewLastTime = time();
