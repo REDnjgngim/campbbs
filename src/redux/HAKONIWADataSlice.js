@@ -19,7 +19,6 @@ export const HAKONIWADataSlice = createSlice({
         campId: window.campId,
         viewLastTime: window.viewLastTime,
         campLists: initialCampLists,
-        islandTurn: window.islandTurn,
         hako_idx: window.hako_idx,
         eventNo: window.eventNo,
         gameEnd: window.gameEnd,

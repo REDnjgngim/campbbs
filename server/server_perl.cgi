@@ -165,6 +165,7 @@ use utf8;
                 $newNo++; # 新規番号
                 $newMessageForCamp->{"No"} = "$newNo";
                 $newMessageForCamp->{"writenTime"} = int(time());
+                $newMessageForCamp->{"writenTurn"} = $master_params_json->{"islandTurn"};
 
                 # 文字数上限処理
                 truncateStrings($newMessageForCamp);
