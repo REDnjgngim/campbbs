@@ -85,7 +85,9 @@ use utf8;
             sub extract_keys {
                 my $ref = shift;
                 my @keys;
-                if (ref($ref) eq 'HASH') {
+                if (ref($ref) eq 'ARRAY') {
+                    push @keys, @$ref;
+                } elsif (ref($ref) eq 'HASH') {
                     for my $key (keys %$ref) {
                         push @keys, $key;
                         push @keys, extract_keys($ref->{$key});

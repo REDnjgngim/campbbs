@@ -125,24 +125,22 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
         />
     );
 
-    const addMessagesRecursively = (timelineNode, depth = 0) => {
-        Object.keys(timelineNode).forEach((key) => {
-            // perlでjsonの型の扱いが難しいので型チェックは外す(newNoを定義する際の数値比較)
-            const messageData = newbbsTable.log.find((message) => message.No == key);
+    newbbsTable.timeline.forEach((threadNos) => {
+        threadArray.push([]);
+        // 各スレッド内のメッセージを表示（順序は配列のまま＝投稿順）
+        threadNos.forEach((no, index) => {
+            const messageData = newbbsTable.log.find((message) => message.No == no);
             if (messageData) {
+                // 親メッセージ(index:0)はインデント0、それ以外は1にする
+                const depth = index === 0 ? 0 : 1;
                 const message = renderMessage(messageData, depth, 0);
                 threadArray[threadArray.length - 1].push(message);
             }
-            if (typeof timelineNode[key] === "object") {
-                addMessagesRecursively(timelineNode[key], depth + 1);
-            }
         });
-    };
-
-    newbbsTable.timeline.forEach((threadTree) => {
-        threadArray.push([]);
-        addMessagesRecursively(threadTree);
     });
+
+    // スレッド全体を反転（最新の作成スレッドを上に）
+    threadArray.reverse();
 
     const importMessage = newbbsTable.log.find((message) => message.important === true);
     if (importMessage) {
