@@ -139,9 +139,6 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
         });
     });
 
-    // スレッド全体を反転（最新の作成スレッドを上に）
-    threadArray.reverse();
-
     const importMessage = newbbsTable.log.find((message) => message.important === true);
     if (importMessage) {
         threadArray.unshift([renderMessage(importMessage, 0, 1)]);

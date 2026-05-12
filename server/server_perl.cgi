@@ -176,33 +176,18 @@ use utf8;
                 push(@{$bbsTable_log->{$campId}}, $newMessageForCamp);
 
                 # timeline追加処理
-                my $current = $bbsTable_timeline->{$campId};
-                my ($treePath, $index) = ("", -1);
+                my $current_timeline = $bbsTable_timeline->{$campId};
                 if($newMessageForCamp->{"parentId"}){
-                    # 階層を辿る
-                    for (my $i = 0; $i <= $#{$current}; $i++) {
-                        $treePath = timeline_Index_Recursively($current->[$i], $newMessageForCamp->{"parentId"});
-                        if($treePath ne ""){
-                            $index = $i;
+                    # 返信：parentIdを含むスレッド（配列）を探して追加
+                    foreach my $thread (@{$current_timeline}) {
+                        if (grep { $_ eq $newMessageForCamp->{"parentId"} } @{$thread}) {
+                            push(@{$thread}, $newMessageForCamp->{"No"});
                             last;
                         }
                     }
-                }
-
-                if($index > -1){
-                    # 返信
-                    my @pathArray = split(/,/, $treePath);
-                    $current = $current->[$index]; # 最初のパス
-                    for (my $i = 0; $i <= $#pathArray; $i++) {
-                        $current = $current->{$pathArray[$i]}; # パスをたどる
-                    }
-                    $current->{$newMessageForCamp->{"No"}} = {};
-
-                    # 返信したスレッドは一番新しくする
-                    push(@{$bbsTable_timeline->{$campId}}, splice(@{$bbsTable_timeline->{$campId}}, $index, 1));
-                }else{
-                    # 新規投稿
-                    push(@{$current}, {$newMessageForCamp->{"No"} => {}});
+                } else {
+                    # 新規投稿：新しいスレッドを作成して末尾に追加
+                    push(@{$current_timeline}, [ $newMessageForCamp->{"No"} ]);
                 }
 
                 # 陣営掲示板の最新投稿時刻を記録
@@ -286,53 +271,35 @@ use utf8;
             }
 
             # timeline削除
-            my $current = $bbsTable_timeline->{$campNo};
-            my ($treePath, $index) = ("", -1);
-            for (my $i = 0; $i <= $#{$current}; $i++) {
-                $treePath = timeline_Index_Recursively($current->[$i], $newMessage_json->{"No"});
-                if($treePath ne ""){
-                    $index = $i;
-                    last;
-                }
-            }
+            my $current_timeline = $bbsTable_timeline->{$campNo};
+            my $targetNo = $newMessage_json->{"No"};
 
-            my @pathArray = split(/,/, $treePath);
-            $current = $current->[$index]; # 最初のパス
-            for (my $i = 0; $i < $#pathArray; $i++) { # キーを消すので最下層の1つ手前で止める
-                $current = $current->{$pathArray[$i]}; # パスをたどる
-            }
-            # 子にメッセージがなかったら削除可能
-            if(keys %{$current->{$newMessage_json->{"No"}}} == 0){
-                delete $current->{$newMessage_json->{"No"}};
-
-                if(keys %{$bbsTable_timeline->{$campNo}[$index]} == 0){
-                    # スレッドの中身が空
-                    splice (@{$bbsTable_timeline->{$campNo}}, $index, 1);
-                }
-            }
-        }
-
-        sub timeline_Index_Recursively {
-            my ($timelineNode, $parentId, $path) = @_;
-            my $foundPath = "";
-
-            foreach my $key (keys %{$timelineNode}) {
-                my $newPath = $path ? "$path,$key" : $key;
-                if ($key eq $parentId) {
-                    # パスが見つかったので返す
-                    $foundPath = $newPath;
-                    last;
-                }
-                if (ref($timelineNode->{$key}) eq 'HASH') {
-                    $foundPath = timeline_Index_Recursively($timelineNode->{$key}, $parentId, $newPath);
-                    if ($foundPath ne "") {
-                        # パスが見つかってるので返す
+            for (my $i = 0; $i <= $#{$current_timeline}; $i++) {
+                my $thread = $current_timeline->[$i];
+                # 削除対象がこのスレッドに含まれているか確認
+                my $target_index = -1;
+                for (my $j = 0; $j <= $#{$thread}; $j++) {
+                    if ($thread->[$j] eq $targetNo) {
+                        $target_index = $j;
                         last;
                     }
                 }
+
+                if ($target_index != -1) {
+                    # スレッドの末尾（最新）である場合のみ、timelineから削除する
+                    if ($target_index == $#{$thread}) {
+                        splice(@{$thread}, $target_index, 1);
+                        if (scalar(@{$thread}) == 0) {
+                            # timelineのスレッドが空なら配列ごと削除
+                            splice(@{$current_timeline}, $i, 1);
+                        }
+                    }
+                    # 末尾以外のメッセージは、timelineの構造を守るために削除しない
+                    last;
+                }
             }
-            return $foundPath;
         }
+
 
         sub read_file_with_lock {
             my ($filename) = @_;
