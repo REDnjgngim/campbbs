@@ -32,14 +32,15 @@ export default function Message({ messageData, indent, isFixed, messageSend }) {
     const isDiplomacyMessage = targetCampIds.length > 0;
 
     const Mtitle = () => {
-        const newIcon = <span className="ml-1 animate-pulse text-sm text-red-500">New!</span>;
+        const newIcon = <span className="animate-pulse text-sm text-red-500">New! </span>;
 
         return (
             <div className="m-1 flex border-b border-gray-300 p-1 text-left">
-                <div className="mb-0.5 shrink-0 border-r border-gray-300 pr-2">No.{No}</div>
-                <div className="grow break-all pl-2">
-                    {title} {writenTime > viewLastTime && newIcon}
+                <div className="mb-0.5 shrink-0 border-r border-gray-300 pr-2">
+                    {writenTime > viewLastTime && newIcon}
+                    No.{No}
                 </div>
+                <div className="grow break-all pl-2">{title}</div>
             </div>
         );
     };
