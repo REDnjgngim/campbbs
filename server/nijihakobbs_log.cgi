@@ -13,6 +13,10 @@ script_output($paramHTML);
 sub certification {
     my $cgi = CGI->new();
     my %URLparams = $cgi->Vars();
+    if($URLparams{'hako'} == 11 && $URLparams{'eventNo'} <= 3){
+        # 海戦season3までは掲示板ログは非公開
+        error_page("不正なアクセスです");
+    }
     my $master_params_json = import_master_params_json($URLparams{'hako'}, $URLparams{'eventNo'});
     if(!$master_params_json->{'gameEnd'}){
         # 現在ゲーム進行中の掲示板は閲覧不可
