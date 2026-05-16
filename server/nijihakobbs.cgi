@@ -109,7 +109,6 @@ sub param_set {
         window.campLists = [
             $campListsHTML
         ];
-        window.islandTurn = $master_params_json->{'islandTurn'};
         window.hako_idx = $hako_idx;
         window.eventNo = $eventNo;
         window.gameEnd = $gameEndFlg;

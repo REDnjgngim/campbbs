@@ -9,7 +9,7 @@ const DIALOG_MESSAGE = {
 };
 
 function message_newPost(form, HAKONIWAData, formType) {
-    const { islandId, islandName, islandTurn, campId } = HAKONIWAData;
+    const { islandId, islandName, campId } = HAKONIWAData;
     const { newNo, title, name, content, color, targetNo, targetCampId, images } = form;
 
     if (formType === "diplomacy" && !confirm(DIALOG_MESSAGE.diplomacy)) {
@@ -32,7 +32,6 @@ function message_newPost(form, HAKONIWAData, formType) {
         contentColor: color.value,
         islandId: islandId,
         islandName: islandName,
-        writenTurn: islandTurn,
         parentId: targetNo.value === newNo.value ? null : targetNo.value,
         writenCampId: campId,
         targetCampIds: targetCampIds,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { useSelector } from "react-redux";
-import Message from "./Message";
+import Thread from "./Thread";
 import { createSelector } from "reselect";
 import { useGetPageCampBbsTableQuery } from "./redux/rtk_query";
 
@@ -115,38 +115,25 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
 
     let threadArray = [];
 
-    const renderMessage = (messageData, depth, isFixed) => (
-        <Message
-            key={messageData.No}
-            messageData={messageData}
-            indent={depth}
-            isFixed={isFixed}
-            messageSend={messageSend}
-        />
-    );
-
-    const addMessagesRecursively = (timelineNode, depth = 0) => {
-        Object.keys(timelineNode).forEach((key) => {
-            // perlでjsonの型の扱いが難しいので型チェックは外す(newNoを定義する際の数値比較)
-            const messageData = newbbsTable.log.find((message) => message.No == key);
+    newbbsTable.timeline.forEach((threadNos) => {
+        const threadItems = [];
+        // 各スレッド内のメッセージを取得（順序は配列のまま＝投稿順）
+        threadNos.forEach((no, index) => {
+            const messageData = newbbsTable.log.find((message) => message.No == no);
             if (messageData) {
-                const message = renderMessage(messageData, depth, 0);
-                threadArray[threadArray.length - 1].push(message);
-            }
-            if (typeof timelineNode[key] === "object") {
-                addMessagesRecursively(timelineNode[key], depth + 1);
+                // 親メッセージ(index:0)はインデント0、それ以外は1にする
+                const depth = index === 0 ? 0 : 1;
+                threadItems.push({ messageData, depth, isFixed: 0 });
             }
         });
-    };
-
-    newbbsTable.timeline.forEach((threadTree) => {
-        threadArray.push([]);
-        addMessagesRecursively(threadTree);
+        if (threadItems.length > 0) {
+            threadArray.push(threadItems);
+        }
     });
 
     const importMessage = newbbsTable.log.find((message) => message.important === true);
     if (importMessage) {
-        threadArray.unshift([renderMessage(importMessage, 0, 1)]);
+        threadArray.unshift([{ messageData: importMessage, depth: 0, isFixed: 1 }]);
     }
 
     return (
@@ -160,11 +147,11 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
                     {FILTER_BUTTON_NAME[filterIndex]}
                 </button>
             </div>
-            {threadArray.map((thread, index) => {
+            {threadArray.map((thread) => {
                 // スレッドの中の先頭で判別
-                const firstMessage = thread[0];
+                const firstMessageData = thread[0].messageData;
 
-                const targetCampIdsLength = firstMessage.props.messageData.targetCampIds.length;
+                const targetCampIdsLength = firstMessageData.targetCampIds.length;
 
                 // フィルタリング処理
                 const shouldDisplay = (() => {
@@ -183,10 +170,10 @@ export default function BbsMessages({ messageSend, GET_TIMELINES }) {
 
                 return (
                     <div
-                        key={index}
+                        key={firstMessageData.No}
                         className="mx-auto mt-4 w-11/12 rounded-sm border border-gray-300 bg-gray-200 p-1 shadow-sm ring-2 ring-gray-200 ring-offset-2"
                     >
-                        {thread}
+                        <Thread threadItems={thread} messageSend={messageSend} />
                     </div>
                 );
             })}
